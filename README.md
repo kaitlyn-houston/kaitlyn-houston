@@ -14,12 +14,12 @@
 
 ---
 
-### 🔭 What I'm working on
+### What I'm working on
 
 - **Lapboard** — a fitness/productivity dashboard PWA that pulls together Garmin data, Google Calendar, and Claude-powered coaching insights into a single home-screen app.
 - Previously built **RunSync** (Strava + Calendar + AI coaching) and **TrainOS** (Apple Health, Strava, Runna, and an AI coach) — Lapboard is the latest in that line.
 
-### 🛠️ Tech I use
+### Tech I use
 
 <p align="left">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
@@ -37,7 +37,7 @@
   </a>
 </p>
 
-### 📫 How to reach me
+### How to reach me
 
 <p align="left">
   <a href="https://github.com/kaitlyn-houston" target="_blank">
