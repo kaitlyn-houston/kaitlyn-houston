@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/kaitlyn-houston/kaitlyn-houston/main/software-developer.png" alt="Banner of a developer sitting in front of a desk" width="800">
+  <img src="[https://raw.githubusercontent.com/kaitlyn-houston/kaitlyn-houston/main/software-developer.png](https://www.dreamstime.com/illustration/female-software-developer.html)" alt="Banner of a developer sitting in front of a desk" width="800">
 </div>
 
 <h1 align="center">Hi, I'm Kaitlyn 👋</h1>
