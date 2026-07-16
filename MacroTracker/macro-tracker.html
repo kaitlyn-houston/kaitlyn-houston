@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#15191E">
+<title>Macro Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <h1>Macros</h1>
+  <div class="date-nav">
+    <button id="prevDay">‹</button>
+    <span class="today-label mono" id="dateLabel">Today</span>
+    <button id="nextDay">›</button>
+  </div>
+</header>
+
+<main>
+  <div class="summary">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 132 132">
+        <circle cx="66" cy="66" r="58" fill="none" stroke="#2A313B" stroke-width="10"/>
+        <circle id="calRing" cx="66" cy="66" r="58" fill="none" stroke="#DB9B4C" stroke-width="10" stroke-linecap="round" stroke-dasharray="364" stroke-dashoffset="364"/>
+      </svg>
+      <div class="ring-center">
+        <div class="cal-num mono" id="calNum">0</div>
+        <div class="cal-label">of <span id="calGoalLabel">2000</span> kcal</div>
+      </div>
+    </div>
+    <div class="macro-bars">
+      <div class="macro-bar-row">
+        <div class="macro-bar-top"><span class="name">Protein</span><span class="val mono" id="proteinVal">0 / 0g</span></div>
+        <div class="macro-bar-track"><div class="macro-bar-fill" id="proteinBar" style="width:0%;background:var(--protein);"></div></div>
+      </div>
+      <div class="macro-bar-row">
+        <div class="macro-bar-top"><span class="name">Carbs</span><span class="val mono" id="carbsVal">0 / 0g</span></div>
+        <div class="macro-bar-track"><div class="macro-bar-fill" id="carbsBar" style="width:0%;background:var(--carbs);"></div></div>
+      </div>
+      <div class="macro-bar-row">
+        <div class="macro-bar-top"><span class="name">Fat</span><span class="val mono" id="fatVal">0 / 0g</span></div>
+        <div class="macro-bar-track"><div class="macro-bar-fill" id="fatBar" style="width:0%;background:var(--fat);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="goals-toggle">
+    <button id="editGoalsBtn">Edit daily goals</button>
+    <button id="calcMacrosBtn">Calculate my macros</button>
+  </div>
+
+  <div id="mealsContainer"></div>
+</main>
+
+<button class="fab" id="addFab">+</button>
+
+<!-- Add/Edit Entry Sheet -->
+<div class="sheet-overlay" id="entryOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 id="entrySheetTitle">Log food</h3>
+
+    <div class="favs-section" id="favsSection">
+      <div class="favs-label">Quick add from favorites</div>
+      <div class="favs-scroll" id="favsScroll"></div>
+    </div>
+    <hr class="favs-divider" id="favsDivider">
+
+    <div class="field">
+      <label>Food name</label>
+      <input type="text" id="entryName" placeholder="e.g. Grilled chicken breast">
+    </div>
+    <div class="field">
+      <label>Meal</label>
+      <select id="entryMeal">
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch">Lunch</option>
+        <option value="dinner">Dinner</option>
+        <option value="snack">Snack</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Serving size (optional)</label>
+      <input type="text" id="entryServing" placeholder="e.g. 200g, 1 cup">
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Calories</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="entryCals" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Protein (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="entryProtein" placeholder="0">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Carbs (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="entryCarbs" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Fat (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="entryFat" placeholder="0">
+      </div>
+    </div>
+    <div class="fav-toggle-row">
+      <button class="fav-star-btn" id="favStarBtn" title="Save as favorite" type="button">☆</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="entryCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="entrySaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Goals Sheet -->
+<div class="sheet-overlay" id="goalsOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Daily goals</h3>
+    <div class="grid-2">
+      <div class="field">
+        <label>Calories</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="goalCals">
+      </div>
+      <div class="field">
+        <label>Protein (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="goalProtein">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label>Carbs (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="goalCarbs">
+      </div>
+      <div class="field">
+        <label>Fat (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="goalFat">
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="goalsCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="goalsSaveBtn">Save goals</button>
+    </div>
+  </div>
+</div>
+
+<!-- Macro Calculator Quiz Sheet -->
+<div class="sheet-overlay" id="calcOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Calculate your macros</h3>
+
+    <div id="quizForm">
+      <div class="field">
+        <label>Units</label>
+        <div class="seg-toggle" id="unitsToggle">
+          <button type="button" class="active" data-units="metric">Metric (kg / cm)</button>
+          <button type="button" data-units="imperial">Imperial (lb / in)</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Sex (for BMR formula)</label>
+        <div class="seg-toggle" id="sexToggle">
+          <button type="button" class="active" data-sex="female">Female</button>
+          <button type="button" data-sex="male">Male</button>
+        </div>
+      </div>
+
+      <div class="quiz-row-2">
+        <div class="field">
+          <label>Age</label>
+          <input type="number" inputmode="numeric" class="mono-input" id="quizAge" placeholder="30">
+        </div>
+        <div class="field">
+          <label id="quizWeightLabel">Weight (kg)</label>
+          <input type="number" inputmode="decimal" class="mono-input" id="quizWeight" placeholder="65">
+        </div>
+      </div>
+
+      <div class="field" id="quizHeightMetricField">
+        <label>Height (cm)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="quizHeightCm" placeholder="165">
+      </div>
+      <div class="quiz-row-2" id="quizHeightImperialField" style="display:none;">
+        <div class="field">
+          <label>Height (ft)</label>
+          <input type="number" inputmode="numeric" class="mono-input" id="quizHeightFt" placeholder="5">
+        </div>
+        <div class="field">
+          <label>Height (in)</label>
+          <input type="number" inputmode="numeric" class="mono-input" id="quizHeightIn" placeholder="6">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Activity level</label>
+        <select id="quizActivity">
+          <option value="1.2">Sedentary — desk job, little exercise</option>
+          <option value="1.375">Light — exercise 1–3 days/week</option>
+          <option value="1.55" selected>Moderate — exercise 3–5 days/week</option>
+          <option value="1.725">Active — exercise 6–7 days/week</option>
+          <option value="1.9">Very active — hard training or physical job</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Goal</label>
+        <select id="quizGoal">
+          <option value="lose">Lose weight</option>
+          <option value="maintain" selected>Maintain weight</option>
+          <option value="gain">Gain weight</option>
+        </select>
+      </div>
+      <div class="quiz-note">Lose/gain paces are set to a moderate ~0.5kg (~1lb) per week.</div>
+
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="calcCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="calcSubmitBtn">Calculate</button>
+      </div>
+    </div>
+
+    <div id="quizResults" style="display:none;">
+      <div class="results-box">
+        <div class="results-cal">
+          <div class="num mono" id="resCalories">0</div>
+          <div class="lbl">calories / day</div>
+        </div>
+        <div class="results-macros">
+          <div class="results-macro"><div class="num mono" id="resProtein">0g</div><div class="lbl">Protein</div></div>
+          <div class="results-macro"><div class="num mono" id="resCarbs">0g</div><div class="lbl">Carbs</div></div>
+          <div class="results-macro"><div class="num mono" id="resFat">0g</div><div class="lbl">Fat</div></div>
+        </div>
+        <div class="results-tdee" id="resTdeeNote"></div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="calcBackBtn">Back</button>
+        <button class="btn btn-primary" id="calcApplyBtn">Use these as my goals</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
