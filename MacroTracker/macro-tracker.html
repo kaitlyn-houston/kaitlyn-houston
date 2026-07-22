@@ -16,6 +16,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Macros">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js" defer></script>
 </head>
 <body>
 
@@ -66,6 +69,9 @@
       </button>
       <button type="button" class="drawer-item" id="backupDataBtn">
         <span class="drawer-item-icon">💾</span> Backup / restore data
+      </button>
+      <button type="button" class="drawer-item" id="accountSyncBtn">
+        <span class="drawer-item-icon">🔐</span> Account &amp; sync
       </button>
     </div>
   </div>
@@ -661,6 +667,60 @@
     <div class="quiz-note" id="backupStatusNote"></div>
     <div class="sheet-actions">
       <button class="btn btn-secondary" id="backupCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Account & Sync Sheet -->
+<div class="sheet-overlay" id="accountOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Account &amp; sync</h3>
+    <div class="quiz-note" id="acctStatusNote">Not set up.</div>
+
+    <div id="acctSetupSection">
+      <div class="quiz-note">
+        This needs a free Firebase project of your own — Google's backend service — so your data can follow you
+        between devices. In the Firebase console: create a project, enable Email/Password sign-in under
+        Authentication, create a Firestore database, then copy your web app's config object from Project settings
+        and paste it below as JSON.
+      </div>
+      <div class="quiz-note">Everything syncs except meal photos, which stay on the device you took them on — syncing them would need a paid Firebase plan.</div>
+      <div class="field">
+        <label for="acctConfigInput">Firebase config (JSON)</label>
+        <textarea id="acctConfigInput" class="mono-input" rows="4" placeholder='{"apiKey": "...", "authDomain": "...", "projectId": "...", ...}'></textarea>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="acctSaveConfigBtn">Save config</button>
+      </div>
+      <div class="field">
+        <label for="acctEmailInput">Email</label>
+        <input type="email" class="mono-input" id="acctEmailInput" placeholder="you@example.com">
+      </div>
+      <div class="field">
+        <label for="acctPasswordInput">Password</label>
+        <input type="password" class="mono-input" id="acctPasswordInput" placeholder="At least 6 characters">
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="acctSignUpBtn">Sign up</button>
+        <button class="btn btn-primary" id="acctLogInBtn">Log in</button>
+      </div>
+    </div>
+
+    <div id="acctManageSection" style="display:none;">
+      <div class="quiz-note" id="acctSyncNote"></div>
+      <div class="sheet-actions">
+        <button class="btn btn-primary" id="acctSyncNowBtn">Sync now</button>
+      </div>
+      <hr class="favs-divider">
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="acctSignOutBtn">Sign out</button>
+      </div>
+    </div>
+
+    <hr class="favs-divider">
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="accountCloseBtn">Close</button>
     </div>
   </div>
 </div>

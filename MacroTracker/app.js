@@ -11,6 +11,7 @@
   const GCAL_TOKEN_KEY = "macroTracker.gcalToken.v1";
   const GCAL_CALENDAR_IDS_KEY = "macroTracker.gcalCalendarIds.v1";
   const GCAL_WORKOUT_CALENDAR_IDS_KEY = "macroTracker.gcalWorkoutCalendarIds.v1";
+  const FIREBASE_CONFIG_KEY = "macroTracker.firebaseConfig.v1";
   const WEIGHT_KEY = "macroTracker.weight.v1";
   const WEIGHT_UNIT_KEY = "macroTracker.weightUnit.v1";
   const THEME_KEY = "macroTracker.theme.v1";
@@ -181,6 +182,15 @@
   function saveGcalWorkoutCalendarIds(ids){
     localStorage.setItem(GCAL_WORKOUT_CALENDAR_IDS_KEY, JSON.stringify(ids));
   }
+  function loadFirebaseConfig(){
+    try{
+      const raw = localStorage.getItem(FIREBASE_CONFIG_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function saveFirebaseConfig(config){
+    localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
+  }
   function loadWeights(){
     try{
       const raw = localStorage.getItem(WEIGHT_KEY);
@@ -347,6 +357,7 @@
     renderActivityCard();
     renderCalendarCard();
     renderInsight(totals, goals);
+    scheduleCloudSync();
   }
 
   function renderWaterCard(){
@@ -1669,6 +1680,206 @@
     reader.readAsText(file);
   }
 
+  // ---------- account & cloud sync ----------
+  const accountOverlay = document.getElementById("accountOverlay");
+  let fbApp = null;
+  let fbAuth = null;
+  let fbDb = null;
+  let fbUser = null;
+  let syncDebounceTimer = null;
+
+  function whenFirebaseReady(cb, attemptsLeft){
+    if(typeof attemptsLeft !== "number") attemptsLeft = 25;
+    if(typeof firebase !== "undefined"){
+      cb();
+      return;
+    }
+    if(attemptsLeft <= 0) return;
+    setTimeout(() => whenFirebaseReady(cb, attemptsLeft - 1), 200);
+  }
+
+  function initFirebase(){
+    const config = loadFirebaseConfig();
+    if(!config || typeof firebase === "undefined") return false;
+    if(!fbApp){
+      try{
+        fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(config);
+        fbAuth = firebase.auth();
+        fbDb = firebase.firestore();
+        fbAuth.onAuthStateChanged(handleAuthStateChanged);
+      }catch(e){
+        fbApp = null; fbAuth = null; fbDb = null;
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function handleAuthStateChanged(user){
+    fbUser = user;
+    updateAccountStatusUI();
+    if(user){
+      await pullStateFromCloud();
+      render();
+      renderFavsRow();
+    }
+  }
+
+  function updateAccountStatusUI(){
+    const note = document.getElementById("acctStatusNote");
+    const setupSection = document.getElementById("acctSetupSection");
+    const manageSection = document.getElementById("acctManageSection");
+    if(fbUser){
+      note.textContent = "Signed in as " + fbUser.email;
+      setupSection.style.display = "none";
+      manageSection.style.display = "block";
+    } else {
+      note.textContent = loadFirebaseConfig() ? "Signed out." : "Not set up.";
+      setupSection.style.display = "block";
+      manageSection.style.display = "none";
+    }
+  }
+
+  function updateSyncNote(msg){
+    const el = document.getElementById("acctSyncNote");
+    if(el) el.textContent = msg;
+  }
+
+  function gatherSyncData(){
+    const data = {};
+    Object.keys(BACKUP_KEYS).forEach(name => {
+      const raw = localStorage.getItem(BACKUP_KEYS[name]);
+      if(raw !== null){
+        try{ data[name] = JSON.parse(raw); }catch(e){ data[name] = raw; }
+      }
+    });
+    // Meal photos aren't synced — they're base64 and would blow past Firestore's
+    // 1MB document limit fast. Strip them before pushing; applySyncData() re-attaches
+    // whatever photo already exists locally when pulling back down.
+    if(Array.isArray(data.entries)){
+      data.entries = data.entries.map(e => {
+        if(!e.photo) return e;
+        const stripped = { ...e };
+        delete stripped.photo;
+        return stripped;
+      });
+    }
+    return data;
+  }
+
+  function applySyncData(data){
+    Object.keys(BACKUP_KEYS).forEach(name => {
+      if(!Object.prototype.hasOwnProperty.call(data, name)) return;
+      if(name === "entries" && Array.isArray(data.entries)){
+        const localPhotoById = {};
+        loadEntries().forEach(e => { if(e.photo) localPhotoById[e.id] = e.photo; });
+        const merged = data.entries.map(e =>
+          (!e.photo && localPhotoById[e.id]) ? { ...e, photo: localPhotoById[e.id] } : e
+        );
+        saveEntries(merged);
+      } else {
+        localStorage.setItem(BACKUP_KEYS[name], JSON.stringify(data[name]));
+      }
+    });
+  }
+
+  async function pushStateToCloud(){
+    if(!fbUser || !fbDb) return;
+    updateSyncNote("Syncing…");
+    try{
+      await fbDb.collection("users").doc(fbUser.uid).set({
+        data: gatherSyncData(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      updateSyncNote("Synced just now.");
+    }catch(e){
+      updateSyncNote("Sync failed — will retry on your next change.");
+    }
+  }
+
+  async function pullStateFromCloud(){
+    if(!fbUser || !fbDb) return;
+    try{
+      const doc = await fbDb.collection("users").doc(fbUser.uid).get();
+      if(doc.exists && doc.data().data){
+        applySyncData(doc.data().data);
+        updateSyncNote("Synced from your account.");
+      } else {
+        updateSyncNote("No cloud data yet — syncing this device up.");
+        await pushStateToCloud();
+      }
+    }catch(e){
+      updateSyncNote("Couldn't reach your account. Using what's on this device.");
+    }
+  }
+
+  function scheduleCloudSync(){
+    if(!fbUser) return;
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = setTimeout(pushStateToCloud, 2500);
+  }
+
+  function openAccountSheet(){
+    const config = loadFirebaseConfig();
+    if(config) document.getElementById("acctConfigInput").value = JSON.stringify(config, null, 2);
+    initFirebase();
+    updateAccountStatusUI();
+    accountOverlay.classList.add("open");
+  }
+  function closeAccountSheet(){
+    accountOverlay.classList.remove("open");
+  }
+
+  function normalizeFirebaseConfigInput(raw){
+    // Firebase's console shows this as a bare JS object (const firebaseConfig = {...};),
+    // not valid JSON — pull out the {...} body, quote its bare keys, and drop trailing commas
+    // so pasting the snippet exactly as shown still works.
+    const match = raw.match(/\{[\s\S]*\}/);
+    let cleaned = match ? match[0] : raw;
+    cleaned = cleaned.replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":');
+    cleaned = cleaned.replace(/,(\s*[}\]])/g, "$1");
+    return cleaned;
+  }
+
+  function saveConfigFromForm(){
+    const raw = document.getElementById("acctConfigInput").value.trim();
+    if(!raw) return;
+    let config;
+    try{
+      config = JSON.parse(raw);
+    }catch(e){
+      try{
+        config = JSON.parse(normalizeFirebaseConfigInput(raw));
+      }catch(e2){
+        alert("Couldn't read that config. Paste the firebaseConfig object exactly as shown in your Firebase project settings.");
+        return;
+      }
+    }
+    saveFirebaseConfig(config);
+    fbApp = null; fbAuth = null; fbDb = null;
+    const ok = initFirebase();
+    updateAccountStatusUI();
+    alert(ok ? "Firebase config saved." : "Saved, but couldn't connect — double check your config and try again.");
+  }
+
+  function signUpAccount(){
+    if(!initFirebase()){ alert("Save your Firebase config first."); return; }
+    const email = document.getElementById("acctEmailInput").value.trim();
+    const password = document.getElementById("acctPasswordInput").value;
+    if(!email || password.length < 6){ alert("Enter an email and a password of at least 6 characters."); return; }
+    fbAuth.createUserWithEmailAndPassword(email, password).catch(err => alert(err.message));
+  }
+  function logInAccount(){
+    if(!initFirebase()){ alert("Save your Firebase config first."); return; }
+    const email = document.getElementById("acctEmailInput").value.trim();
+    const password = document.getElementById("acctPasswordInput").value;
+    if(!email || !password){ alert("Enter your email and password."); return; }
+    fbAuth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+  }
+  function signOutAccount(){
+    if(fbAuth) fbAuth.signOut();
+  }
+
   // ---------- API key sheet ----------
   const apiKeyOverlay = document.getElementById("apiKeyOverlay");
 
@@ -2677,7 +2888,7 @@
   document.getElementById("menuBtn").addEventListener("click", openDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", (e) => { if(e.target === drawerOverlay) closeDrawer(); });
-  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn"].forEach(id => {
+  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn", "accountSyncBtn"].forEach(id => {
     document.getElementById(id).addEventListener("click", closeDrawer);
   });
 
@@ -2693,6 +2904,15 @@
     if(file) restoreBackupFromFile(file);
     e.target.value = "";
   });
+
+  document.getElementById("accountSyncBtn").addEventListener("click", openAccountSheet);
+  document.getElementById("accountCloseBtn").addEventListener("click", closeAccountSheet);
+  accountOverlay.addEventListener("click", (e) => { if(e.target === accountOverlay) closeAccountSheet(); });
+  document.getElementById("acctSaveConfigBtn").addEventListener("click", saveConfigFromForm);
+  document.getElementById("acctSignUpBtn").addEventListener("click", signUpAccount);
+  document.getElementById("acctLogInBtn").addEventListener("click", logInAccount);
+  document.getElementById("acctSignOutBtn").addEventListener("click", signOutAccount);
+  document.getElementById("acctSyncNowBtn").addEventListener("click", pushStateToCloud);
 
   document.getElementById("logWeightBtn").addEventListener("click", openWeightSheet);
   document.getElementById("weightCancelBtn").addEventListener("click", closeWeightSheet);
@@ -2759,6 +2979,7 @@
   applyTheme(loadTheme());
   render();
   initGoogleCalendarOnLoad();
+  whenFirebaseReady(() => initFirebase());
 
   if("serviceWorker" in navigator && location.protocol !== "file:"){
     window.addEventListener("load", () => {

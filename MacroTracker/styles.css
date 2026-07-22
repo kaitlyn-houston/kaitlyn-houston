@@ -389,7 +389,7 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 
 .field{margin-bottom:12px;}
 .field label, .field .field-label{display:block;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;}
-.field input, .field select{
+.field input, .field select, .field textarea{
   width:100%;
   background:var(--bg-inset);
   border:1px solid var(--border);
@@ -399,8 +399,9 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
   font-size:15px;
   font-family:'Inter',sans-serif;
 }
-.field input.mono-input{font-family:'IBM Plex Mono',monospace;}
-.field input:focus, .field select:focus{outline:none;border-color:var(--amber);}
+.field textarea{resize:vertical;}
+.field input.mono-input, .field textarea.mono-input{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--amber);}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
