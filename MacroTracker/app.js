@@ -22,6 +22,7 @@
   const WEEKDAY_GOALS_KEY = "macroTracker.weekdayGoals.v1";
   const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
+  const WORKOUT_SEGMENT_DONE_KEY = "macroTracker.workoutSegmentDone.v1";
   const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
   const TODOS_KEY = "macroTracker.todos.v1";
   const CAL_EVENT_DONE_KEY = "macroTracker.calEventDone.v1";
@@ -286,6 +287,18 @@
   }
   function saveWorkoutPlan(map){
     localStorage.setItem(WORKOUT_PLAN_KEY, JSON.stringify(map));
+  }
+  function loadWorkoutSegmentDone(){
+    try{
+      const raw = localStorage.getItem(WORKOUT_SEGMENT_DONE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWorkoutSegmentDone(map){
+    localStorage.setItem(WORKOUT_SEGMENT_DONE_KEY, JSON.stringify(map));
+  }
+  function splitWorkoutLabel(label){
+    return label.split(" + ").map(s => s.trim()).filter(Boolean);
   }
   function loadDayNotes(){
     try{
@@ -696,7 +709,8 @@
     dates.forEach((d, idx) => {
       const list = todos[d] || [];
       const hasWorkout = dayHasWorkout(plan, d);
-      const totalItems = list.length + (hasWorkout ? 1 : 0);
+      const workoutSegments = hasWorkout ? splitWorkoutLabel(plan[d].label) : [];
+      const totalItems = list.length + workoutSegments.length;
       const allDone = totalItems > 0 &&
         list.every(t => t.done) && (!hasWorkout || plan[d].done);
       let cls = "workout-day-pill";
@@ -719,17 +733,35 @@
     const hasWorkout = dayHasWorkout(plan, currentDate);
     if(hasWorkout){
       const entry = plan[currentDate];
-      const row = document.createElement("div");
-      row.className = "todo-row" + (entry.done ? " done" : "");
-      row.innerHTML = `
-        <label class="todo-check">
-          <input type="checkbox" class="todo-check-input">
-          <span class="todo-text">🏋️ ${escapeHtml(entry.label)}</span>
-        </label>
-      `;
-      row.querySelector(".todo-check-input").checked = !!entry.done;
-      row.querySelector(".todo-check-input").addEventListener("change", toggleWorkoutDone);
-      container.appendChild(row);
+      const segments = splitWorkoutLabel(entry.label);
+      if(segments.length > 1){
+        const segMap = loadWorkoutSegmentDone();
+        segments.forEach((seg, idx) => {
+          const done = !!segMap[currentDate + "|" + idx];
+          const row = document.createElement("div");
+          row.className = "todo-row" + (done ? " done" : "");
+          row.innerHTML = `
+            <label class="todo-check">
+              <input type="checkbox" class="todo-check-input" ${done ? "checked" : ""}>
+              <span class="todo-text">🏋️ ${escapeHtml(seg)}</span>
+            </label>
+          `;
+          row.querySelector(".todo-check-input").addEventListener("change", () => toggleWorkoutSegmentDone(idx, segments.length));
+          container.appendChild(row);
+        });
+      } else {
+        const row = document.createElement("div");
+        row.className = "todo-row" + (entry.done ? " done" : "");
+        row.innerHTML = `
+          <label class="todo-check">
+            <input type="checkbox" class="todo-check-input">
+            <span class="todo-text">🏋️ ${escapeHtml(entry.label)}</span>
+          </label>
+        `;
+        row.querySelector(".todo-check-input").checked = !!entry.done;
+        row.querySelector(".todo-check-input").addEventListener("change", toggleWorkoutDone);
+        container.appendChild(row);
+      }
     }
 
     const calEvents = (todoCalendarCache.date === currentDate)
@@ -1082,6 +1114,31 @@
     if(!entry || !entry.label) return;
     entry.done = !entry.done;
     saveWorkoutPlan(plan);
+
+    const segments = splitWorkoutLabel(entry.label);
+    if(segments.length > 1){
+      const segMap = loadWorkoutSegmentDone();
+      segments.forEach((s, idx) => { segMap[currentDate + "|" + idx] = entry.done; });
+      saveWorkoutSegmentDone(segMap);
+    }
+
+    renderWorkoutCard();
+    renderTodoCard();
+  }
+
+  function toggleWorkoutSegmentDone(idx, totalSegments){
+    const segMap = loadWorkoutSegmentDone();
+    const key = currentDate + "|" + idx;
+    segMap[key] = !segMap[key];
+    saveWorkoutSegmentDone(segMap);
+
+    const allDone = Array.from({ length: totalSegments }, (_, i) => !!segMap[currentDate + "|" + i]).every(Boolean);
+    const plan = loadWorkoutPlan();
+    if(plan[currentDate]){
+      plan[currentDate].done = allDone;
+      saveWorkoutPlan(plan);
+    }
+
     renderWorkoutCard();
     renderTodoCard();
   }
@@ -2498,6 +2555,7 @@
     templates: TEMPLATES_KEY,
     weekdayGoals: WEEKDAY_GOALS_KEY,
     workoutPlan: WORKOUT_PLAN_KEY,
+    workoutSegmentDone: WORKOUT_SEGMENT_DONE_KEY,
     checkinLog: CHECKIN_LOG_KEY,
     dayNotes: DAY_NOTES_KEY,
     todos: TODOS_KEY,
