@@ -281,6 +281,19 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .workout-done-btn{margin-top:10px;width:100%;padding:10px;font-size:13px;}
 .workout-done-btn.is-done{background:var(--good);border-color:var(--good);color:#fff;}
 
+.day-notes-input{
+  width:100%;
+  background:var(--bg-inset);
+  border:1px solid var(--border);
+  color:var(--text);
+  border-radius:10px;
+  padding:11px 12px;
+  font-size:14px;
+  font-family:'Inter',sans-serif;
+  resize:vertical;
+}
+.day-notes-input:focus{outline:none;border-color:var(--amber);}
+
 .workout-plan-row{border-bottom:1px solid var(--border);padding:10px 0;}
 .workout-plan-row:last-child{border-bottom:none;}
 .workout-plan-row.today .workout-plan-day{color:var(--terracotta);}

@@ -21,6 +21,7 @@
   const WEEKDAY_GOALS_KEY = "macroTracker.weekdayGoals.v1";
   const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
+  const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
   const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const WORKOUT_TEMPLATES = {
     fatloss: [
@@ -273,6 +274,15 @@
   function saveWorkoutPlan(map){
     localStorage.setItem(WORKOUT_PLAN_KEY, JSON.stringify(map));
   }
+  function loadDayNotes(){
+    try{
+      const raw = localStorage.getItem(DAY_NOTES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveDayNotes(map){
+    localStorage.setItem(DAY_NOTES_KEY, JSON.stringify(map));
+  }
   function loadReminders(){
     try{
       const raw = localStorage.getItem(REMINDERS_KEY);
@@ -497,6 +507,7 @@
     renderActivityCard();
     renderCalendarCard();
     renderMicroCard(totals);
+    renderNotesCard();
     renderInsight(totals, goals);
     scheduleCloudSync();
     checkReminders();
@@ -601,6 +612,21 @@
     const best = gaps.reduce((a, b) => ((b.end - b.start) > (a.end - a.start) ? b : a));
     const minutes = (best.end - best.start) / 60000;
     return minutes >= MIN_WORKOUT_GAP_MINUTES ? best : null;
+  }
+
+  function renderNotesCard(){
+    document.getElementById("dayNotesInput").value = loadDayNotes()[currentDate] || "";
+  }
+
+  function saveDayNote(){
+    const notes = loadDayNotes();
+    const val = document.getElementById("dayNotesInput").value;
+    if(val.trim()){
+      notes[currentDate] = val;
+    } else {
+      delete notes[currentDate];
+    }
+    saveDayNotes(notes);
   }
 
   async function renderWorkoutCard(){
@@ -2073,7 +2099,8 @@
     templates: TEMPLATES_KEY,
     weekdayGoals: WEEKDAY_GOALS_KEY,
     workoutPlan: WORKOUT_PLAN_KEY,
-    checkinLog: CHECKIN_LOG_KEY
+    checkinLog: CHECKIN_LOG_KEY,
+    dayNotes: DAY_NOTES_KEY
   };
 
   function openBackupSheet(){
@@ -3395,6 +3422,7 @@
 
   document.getElementById("planWorkoutsBtn").addEventListener("click", openWorkoutPlanSheet);
   document.getElementById("workoutCardEditBtn").addEventListener("click", openWorkoutPlanSheet);
+  document.getElementById("dayNotesInput").addEventListener("input", saveDayNote);
   document.getElementById("workoutDoneBtn").addEventListener("click", toggleWorkoutDone);
   document.getElementById("workoutPlanCloseBtn").addEventListener("click", closeWorkoutPlanSheet);
   document.getElementById("workoutPlanSaveBtn").addEventListener("click", saveWorkoutPlanFromForm);
