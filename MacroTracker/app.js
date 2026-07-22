@@ -829,6 +829,142 @@
     renderWorkoutCard();
   }
 
+  // ---------- daily check-in (conversational) ----------
+  const CHECKIN_LEVEL_SCORE = { low: 0, poor: 0, stressed: 0, medium: 1, ok: 1, neutral: 1, high: 2, good: 2 };
+  const CHECKIN_QUESTIONS = [
+    { key: "energy", text: "How's your energy today?", options: [
+      { value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }
+    ]},
+    { key: "sleep", text: "How did you sleep last night?", options: [
+      { value: "poor", label: "Poor" }, { value: "ok", label: "OK" }, { value: "good", label: "Good" }
+    ]},
+    { key: "mood", text: "How's your mood / stress?", options: [
+      { value: "stressed", label: "Stressed" }, { value: "neutral", label: "Neutral" }, { value: "good", label: "Good" }
+    ]},
+    { key: "hunger", text: "Hungry right now?", options: [
+      { value: "none", label: "Not really" }, { value: "some", label: "A little" }, { value: "very", label: "Very" }
+    ]}
+  ];
+  let checkinStep = 0;
+  let checkinAnswers = {};
+
+  function generateCheckinSuggestions(answers){
+    const { energy, sleep, mood, hunger } = answers;
+    const score = CHECKIN_LEVEL_SCORE[energy] + CHECKIN_LEVEL_SCORE[sleep] + CHECKIN_LEVEL_SCORE[mood];
+    let summary;
+    if(score <= 2){
+      summary = "Today looks like a recovery day — lean on rest, hydration, and easy nutrition rather than pushing hard.";
+    } else if(score <= 4){
+      summary = "You're doing okay. A few deliberate choices — water, a real meal, a short walk — will compound today.";
+    } else {
+      summary = "You're in a good place today — a solid day to tackle a harder workout or get ahead on meal prep if you've got the time.";
+    }
+
+    const foodTips = [];
+    const drinkTips = [];
+    const exerciseTips = [];
+
+    if(energy === "low"){
+      foodTips.push("Complex carbs + protein — oats, eggs, or a banana with nut butter — to avoid a sugar-crash cycle.");
+      drinkTips.push("Water first — low energy is often mild dehydration in disguise.");
+      exerciseTips.push("Skip anything intense; a 10-15 min walk usually helps more than pushing through a hard session.");
+    }
+    if(sleep === "poor"){
+      foodTips.push("Lean on protein and go easy on heavy or greasy food — harder to digest on little sleep.");
+      drinkTips.push("Ease off caffeine after midday so tonight isn't compounded by today.");
+      exerciseTips.push("Light movement only — yoga or a walk. Recovery matters more than intensity today.");
+    }
+    if(mood === "stressed"){
+      foodTips.push("Magnesium-rich foods — leafy greens, nuts, dark chocolate — are linked to lower stress reactivity.");
+      drinkTips.push("Herbal tea (chamomile, peppermint) over more caffeine, which can amplify anxiety.");
+      exerciseTips.push("A steady walk or stretching session tends to lower cortisol better than high-intensity work right now.");
+    }
+    if(hunger === "very"){
+      foodTips.push("You're genuinely hungry — have a real balanced meal (protein + complex carb + veg) rather than grazing.");
+    }
+    if(energy === "high" && sleep !== "poor" && mood !== "stressed"){
+      exerciseTips.push("Good conditions for a harder session today if one's on your plan.");
+    }
+
+    if(foodTips.length === 0) foodTips.push("Nothing specific stands out — eat to your usual goals today.");
+    if(drinkTips.length === 0) drinkTips.push("Stay on top of your water goal as usual.");
+    if(exerciseTips.length === 0) exerciseTips.push("Whatever's already planned should suit how you're feeling.");
+
+    return {
+      summary,
+      areas: [
+        { label: "Food", tips: foodTips },
+        { label: "Drink", tips: drinkTips },
+        { label: "Exercise", tips: exerciseTips }
+      ]
+    };
+  }
+
+  function renderCheckinChat(){
+    const log = document.getElementById("checkinChatLog");
+    const chips = document.getElementById("checkinChips");
+    if(!log || !chips) return;
+    log.innerHTML = "";
+
+    for(let i = 0; i < checkinStep; i++){
+      const q = CHECKIN_QUESTIONS[i];
+      const opt = q.options.find(o => o.value === checkinAnswers[q.key]);
+      const row = document.createElement("div");
+      row.className = "checkin-msg checkin-msg-done";
+      row.textContent = q.text.replace(/\?$/, "") + ": " + (opt ? opt.label : "");
+      log.appendChild(row);
+    }
+
+    chips.innerHTML = "";
+
+    if(checkinStep < CHECKIN_QUESTIONS.length){
+      const q = CHECKIN_QUESTIONS[checkinStep];
+      const qEl = document.createElement("div");
+      qEl.className = "checkin-msg checkin-msg-bot";
+      qEl.textContent = q.text;
+      log.appendChild(qEl);
+
+      q.options.forEach(o => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "checkin-chip";
+        chip.textContent = o.label;
+        chip.addEventListener("click", () => {
+          checkinAnswers[q.key] = o.value;
+          checkinStep++;
+          renderCheckinChat();
+        });
+        chips.appendChild(chip);
+      });
+    } else {
+      const { summary, areas } = generateCheckinSuggestions(checkinAnswers);
+      const respEl = document.createElement("div");
+      respEl.className = "checkin-msg checkin-msg-bot";
+      respEl.textContent = summary;
+      log.appendChild(respEl);
+
+      areas.forEach(a => {
+        const areaEl = document.createElement("div");
+        areaEl.className = "checkin-msg checkin-msg-bot checkin-msg-area";
+        areaEl.innerHTML = `<strong>${escapeHtml(a.label)}:</strong> ${a.tips.map(escapeHtml).join(" ")}`;
+        log.appendChild(areaEl);
+      });
+
+      const restartChip = document.createElement("button");
+      restartChip.type = "button";
+      restartChip.className = "checkin-chip";
+      restartChip.textContent = "🔄 Start over";
+      restartChip.addEventListener("click", () => {
+        checkinStep = 0;
+        checkinAnswers = {};
+        renderCheckinChat();
+      });
+      chips.appendChild(restartChip);
+    }
+
+    log.scrollTop = log.scrollHeight;
+  }
+
   function renderActivityCard(){
     const activities = loadGarminActivities();
     const card = document.getElementById("activityCard");
@@ -3171,6 +3307,7 @@
   // ---------- init ----------
   applyTheme(loadTheme());
   render();
+  renderCheckinChat();
   initGoogleCalendarOnLoad();
   whenFirebaseReady(() => initFirebase());
   setInterval(checkReminders, 60000);

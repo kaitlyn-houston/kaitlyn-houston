@@ -85,7 +85,7 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .dash-grid{
   display:grid;
   grid-template-columns:1.2fr 1fr;
-  grid-template-rows:auto auto;
+  grid-template-rows:auto auto auto;
   gap:8px;
   margin:14px 0 8px;
 }
@@ -96,7 +96,7 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
   padding:14px;
 }
 .dash-tile-big{
-  grid-row:span 2;
+  grid-row:span 3;
   display:flex;flex-direction:column;align-items:center;
   padding:16px 10px;
 }
@@ -107,6 +107,21 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 }
 .dash-tile-num{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--text);}
 .dash-tile-sub{font-size:11px;color:var(--text-dim);margin-top:3px;}
+
+.checkin-tile{display:flex;flex-direction:column;}
+.checkin-chat{display:flex;flex-direction:column;gap:6px;max-height:130px;overflow-y:auto;margin-bottom:8px;}
+.checkin-msg{font-size:11px;line-height:1.4;}
+.checkin-msg-done{color:var(--text-faint);}
+.checkin-msg-bot{color:var(--text);font-size:12px;font-weight:500;}
+.checkin-msg-area{font-weight:400;}
+.checkin-msg-area strong{color:var(--terracotta);font-weight:600;}
+.checkin-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;}
+.checkin-chip{
+  background:var(--bg-inset);border:1px solid var(--border);color:var(--text);
+  font-size:11px;font-family:'Inter',sans-serif;padding:6px 10px;border-radius:20px;
+  cursor:pointer;
+}
+.checkin-chip:active{border-color:var(--terracotta);}
 .dash-tile-sub.down{color:var(--good);}
 .dash-tile-sub.up{color:var(--danger);}
 
