@@ -185,8 +185,8 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 }
 .activity-card-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;}
 
-.micro-row{display:flex;justify-content:space-between;}
-.micro-stat{flex:1;text-align:center;}
+.micro-row{display:flex;flex-wrap:wrap;justify-content:space-between;row-gap:12px;}
+.micro-stat{flex:1 1 30%;min-width:60px;text-align:center;}
 .micro-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);margin-bottom:4px;}
 .micro-value{font-size:15px;font-weight:600;color:var(--text);}
 .micro-value.good{color:var(--good);}
@@ -265,9 +265,7 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .water-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .water-amount{font-size:18px;font-weight:700;margin-bottom:8px;}
 .water-quick-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
-.water-quick-actions .water-btn,
-.water-quick-actions .caffeine-btn,
-.water-quick-actions .alcohol-btn{flex:none;padding:8px 14px;font-size:12px;}
+.water-quick-actions .water-btn{flex:none;padding:8px 14px;font-size:12px;}
 
 .workout-week-strip{display:flex;gap:6px;margin-bottom:10px;}
 .workout-day-pill{

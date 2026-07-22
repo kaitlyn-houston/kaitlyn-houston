@@ -17,10 +17,6 @@
   const THEME_KEY = "macroTracker.theme.v1";
   const WATER_KEY = "macroTracker.water.v1";
   const WATER_GOAL_KEY = "macroTracker.waterGoal.v1";
-  const CAFFEINE_KEY = "macroTracker.caffeine.v1";
-  const CAFFEINE_GOAL_KEY = "macroTracker.caffeineGoal.v1";
-  const ALCOHOL_KEY = "macroTracker.alcohol.v1";
-  const ALCOHOL_GOAL_KEY = "macroTracker.alcoholGoal.v1";
   const TEMPLATES_KEY = "macroTracker.mealTemplates.v1";
   const WEEKDAY_GOALS_KEY = "macroTracker.weekdayGoals.v1";
   const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -80,6 +76,8 @@
   const FIBER_GOAL_G = 25;
   const SUGAR_LIMIT_G = 50;
   const SODIUM_LIMIT_MG = 2300;
+  const CAFFEINE_LIMIT_MG = 400;
+  const ALCOHOL_DAILY_WARN_UNITS = 3;
   const REMINDERS_KEY = "macroTracker.reminders.v1";
   const NOTIFIED_LOG_KEY = "macroTracker.notifiedLog.v1";
   const CHECKIN_LOG_KEY = "macroTracker.checkinLog.v1";
@@ -242,38 +240,6 @@
   }
   function saveWaterGoal(ml){
     localStorage.setItem(WATER_GOAL_KEY, String(ml));
-  }
-  function loadCaffeine(){
-    try{
-      const raw = localStorage.getItem(CAFFEINE_KEY);
-      return raw ? JSON.parse(raw) : {};
-    }catch(e){ return {}; }
-  }
-  function saveCaffeine(map){
-    localStorage.setItem(CAFFEINE_KEY, JSON.stringify(map));
-  }
-  function loadCaffeineGoal(){
-    const raw = num(localStorage.getItem(CAFFEINE_GOAL_KEY));
-    return raw > 0 ? raw : 400;
-  }
-  function saveCaffeineGoal(mg){
-    localStorage.setItem(CAFFEINE_GOAL_KEY, String(mg));
-  }
-  function loadAlcohol(){
-    try{
-      const raw = localStorage.getItem(ALCOHOL_KEY);
-      return raw ? JSON.parse(raw) : {};
-    }catch(e){ return {}; }
-  }
-  function saveAlcohol(map){
-    localStorage.setItem(ALCOHOL_KEY, JSON.stringify(map));
-  }
-  function loadAlcoholGoal(){
-    const raw = num(localStorage.getItem(ALCOHOL_GOAL_KEY));
-    return raw > 0 ? raw : 14;
-  }
-  function saveAlcoholGoal(units){
-    localStorage.setItem(ALCOHOL_GOAL_KEY, String(units));
   }
   function loadTemplates(){
     try{
@@ -510,8 +476,10 @@
       acc.fiber += num(e.fiber);
       acc.sugar += num(e.sugar);
       acc.sodium += num(e.sodium);
+      acc.caffeine += num(e.caffeine);
+      acc.alcohol += num(e.alcohol);
       return acc;
-    }, { calories:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0, sodium:0 });
+    }, { calories:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0, sodium:0, caffeine:0, alcohol:0 });
   }
 
   function render(){
@@ -525,8 +493,6 @@
     renderBurnedCard(totals);
     renderWeightCard();
     renderWaterCard();
-    renderCaffeineCard();
-    renderAlcoholCard();
     renderWorkoutCard();
     renderActivityCard();
     renderCalendarCard();
@@ -546,6 +512,13 @@
     sugarEl.className = "micro-value mono" + (totals.sugar > SUGAR_LIMIT_G ? " warn" : "");
     sodiumEl.textContent = Math.round(totals.sodium) + "mg";
     sodiumEl.className = "micro-value mono" + (totals.sodium > SODIUM_LIMIT_MG ? " warn" : "");
+
+    const caffeineEl = document.getElementById("caffeineVal");
+    const alcoholEl = document.getElementById("alcoholVal");
+    caffeineEl.textContent = Math.round(totals.caffeine) + "mg";
+    caffeineEl.className = "micro-value mono" + (totals.caffeine > CAFFEINE_LIMIT_MG ? " warn" : "");
+    alcoholEl.textContent = Math.round(totals.alcohol * 10) / 10 + "u";
+    alcoholEl.className = "micro-value mono" + (totals.alcohol > ALCOHOL_DAILY_WARN_UNITS ? " warn" : "");
   }
 
   function renderWaterCard(){
@@ -579,81 +552,6 @@
     if(val > 0){
       saveWaterGoal(Math.round(val));
       renderWaterCard();
-    }
-  }
-
-  function renderCaffeineCard(){
-    const mg = loadCaffeine()[currentDate] || 0;
-    const goal = loadCaffeineGoal();
-    document.getElementById("caffeineAmountNum").textContent = mg + " / " + goal + " mg";
-    const pct = goal > 0 ? Math.min((mg / goal) * 100, 100) : 0;
-    const bar = document.getElementById("caffeineBar");
-    bar.style.width = pct + "%";
-    bar.style.background = mg > goal ? "var(--danger)" : "var(--fat)";
-  }
-
-  function addCaffeine(deltaMg){
-    const map = loadCaffeine();
-    const cur = map[currentDate] || 0;
-    map[currentDate] = Math.max(cur + deltaMg, 0);
-    saveCaffeine(map);
-    renderCaffeineCard();
-  }
-
-  function resetCaffeineToday(){
-    if(!confirm("Reset today's caffeine to 0?")) return;
-    const map = loadCaffeine();
-    map[currentDate] = 0;
-    saveCaffeine(map);
-    renderCaffeineCard();
-  }
-
-  function promptCaffeineGoal(){
-    const input = prompt("Daily caffeine limit (mg):", String(loadCaffeineGoal()));
-    if(input == null) return;
-    const val = num(input);
-    if(val > 0){
-      saveCaffeineGoal(Math.round(val));
-      renderCaffeineCard();
-    }
-  }
-
-  function renderAlcoholCard(){
-    const map = loadAlcohol();
-    const units = map[currentDate] || 0;
-    const goal = loadAlcoholGoal();
-    const weekTotal = currentWeekDates(currentDate).reduce((sum, d) => sum + (map[d] || 0), 0);
-    document.getElementById("alcoholAmountNum").textContent = units + " units today";
-    document.getElementById("alcoholWeekNum").textContent = weekTotal + " / " + goal + " units this week";
-    const pct = goal > 0 ? Math.min((weekTotal / goal) * 100, 100) : 0;
-    const bar = document.getElementById("alcoholBar");
-    bar.style.width = pct + "%";
-    bar.style.background = weekTotal > goal ? "var(--danger)" : "var(--protein)";
-  }
-
-  function addAlcohol(deltaUnits){
-    const map = loadAlcohol();
-    const cur = map[currentDate] || 0;
-    map[currentDate] = Math.max(cur + deltaUnits, 0);
-    saveAlcohol(map);
-    renderAlcoholCard();
-  }
-
-  function resetAlcoholToday(){
-    if(!confirm("Reset today's alcohol to 0?")) return;
-    const map = loadAlcohol();
-    map[currentDate] = 0;
-    saveAlcohol(map);
-    renderAlcoholCard();
-  }
-
-  function promptAlcoholGoal(){
-    const input = prompt("Weekly alcohol limit (units):", String(loadAlcoholGoal()));
-    if(input == null) return;
-    const val = num(input);
-    if(val > 0){
-      saveAlcoholGoal(Math.round(val));
-      renderAlcoholCard();
     }
   }
 
@@ -1632,7 +1530,9 @@
       fat: num(document.getElementById("entryFat").value),
       fiber: num(document.getElementById("entryFiber").value),
       sugar: num(document.getElementById("entrySugar").value),
-      sodium: num(document.getElementById("entrySodium").value)
+      sodium: num(document.getElementById("entrySodium").value),
+      caffeine: num(document.getElementById("entryCaffeine").value),
+      alcohol: num(document.getElementById("entryAlcohol").value)
     };
   }
 
@@ -1653,6 +1553,8 @@
     document.getElementById("entryFiber").value = "";
     document.getElementById("entrySugar").value = "";
     document.getElementById("entrySodium").value = "";
+    document.getElementById("entryCaffeine").value = "";
+    document.getElementById("entryAlcohol").value = "";
     document.getElementById("foodSearchInput").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     updateFavStarUI();
@@ -1685,6 +1587,8 @@
     document.getElementById("entryFiber").value = e.fiber || "";
     document.getElementById("entrySugar").value = e.sugar || "";
     document.getElementById("entrySodium").value = e.sodium || "";
+    document.getElementById("entryCaffeine").value = e.caffeine || "";
+    document.getElementById("entryAlcohol").value = e.alcohol || "";
     document.getElementById("foodSearchInput").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     setEntryBaselineFromForm();
@@ -1779,6 +1683,8 @@
     document.getElementById("entryFiber").value = f.fiber || "";
     document.getElementById("entrySugar").value = f.sugar || "";
     document.getElementById("entrySodium").value = f.sodium || "";
+    document.getElementById("entryCaffeine").value = f.caffeine || "";
+    document.getElementById("entryAlcohol").value = f.alcohol || "";
     setEntryBaselineFromForm();
     isFavStarred = true;
     updateFavStarUI();
@@ -1796,7 +1702,9 @@
       fat: payload.fat,
       fiber: payload.fiber,
       sugar: payload.sugar,
-      sodium: payload.sodium
+      sodium: payload.sodium,
+      caffeine: payload.caffeine,
+      alcohol: payload.alcohol
     };
     if(idx >= 0){ favs[idx] = favData; } else { favs.push(favData); }
     saveFavorites(favs);
@@ -1866,6 +1774,8 @@
       fiber: num(document.getElementById("entryFiber").value),
       sugar: num(document.getElementById("entrySugar").value),
       sodium: num(document.getElementById("entrySodium").value),
+      caffeine: num(document.getElementById("entryCaffeine").value),
+      alcohol: num(document.getElementById("entryAlcohol").value),
       date: currentDate,
       photo: entryPhotoDataUrl || null
     };
@@ -1909,6 +1819,7 @@
         fiber: ln.fiber ? ln.fiber.value : 0,
         sugar: ln.sugars ? ln.sugars.value : 0,
         sodium: ln.sodium ? ln.sodium.value : 0,
+        caffeine: ln.caffeine ? ln.caffeine.value : 0,
         serving: (food.servingSize && food.servingSizeUnit)
           ? (food.servingSize + food.servingSizeUnit)
           : (food.householdServingFullText || "")
@@ -1930,6 +1841,7 @@
       fiber: find("Fiber, total dietary"),
       sugar: find("Sugars, total including NLEA", "Sugars, total"),
       sodium: find("Sodium, Na"),
+      caffeine: find("Caffeine"),
       serving: "100 g"
     };
   }
@@ -1965,6 +1877,8 @@
     document.getElementById("entryFiber").value = Math.round(macros.fiber || 0);
     document.getElementById("entrySugar").value = Math.round(macros.sugar || 0);
     document.getElementById("entrySodium").value = Math.round(macros.sodium || 0);
+    document.getElementById("entryCaffeine").value = Math.round(macros.caffeine || 0);
+    document.getElementById("entryAlcohol").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     document.getElementById("foodSearchInput").value = "";
     setEntryBaselineFromForm();
@@ -2133,6 +2047,7 @@
         fiber: num(n["fiber_100g"]),
         sugar: num(n["sugars_100g"]),
         sodium: num(n["sodium_100g"]) * 1000,
+        caffeine: num(n["caffeine_100g"]) * 1000,
         serving: p.serving_size || "100 g"
       };
       const name = p.product_name ? (p.brands ? `${p.product_name} (${p.brands})` : p.product_name) : "Scanned item";
@@ -2155,10 +2070,6 @@
     weightUnit: WEIGHT_UNIT_KEY,
     water: WATER_KEY,
     waterGoal: WATER_GOAL_KEY,
-    caffeine: CAFFEINE_KEY,
-    caffeineGoal: CAFFEINE_GOAL_KEY,
-    alcohol: ALCOHOL_KEY,
-    alcoholGoal: ALCOHOL_GOAL_KEY,
     templates: TEMPLATES_KEY,
     weekdayGoals: WEEKDAY_GOALS_KEY,
     workoutPlan: WORKOUT_PLAN_KEY,
@@ -3376,6 +3287,8 @@
     document.getElementById("entryFiber").value = Math.round(entryBaseline.fiber * ratio);
     document.getElementById("entrySugar").value = Math.round(entryBaseline.sugar * ratio);
     document.getElementById("entrySodium").value = Math.round(entryBaseline.sodium * ratio);
+    document.getElementById("entryCaffeine").value = Math.round((entryBaseline.caffeine || 0) * ratio);
+    document.getElementById("entryAlcohol").value = Math.round((entryBaseline.alcohol || 0) * ratio * 10) / 10;
   });
 
   document.getElementById("foodSearchBtn").addEventListener("click", performFoodSearch);
@@ -3424,18 +3337,6 @@
   });
   document.getElementById("waterResetBtn").addEventListener("click", resetWaterToday);
   document.getElementById("waterGoalBtn").addEventListener("click", promptWaterGoal);
-
-  document.querySelectorAll(".caffeine-btn").forEach(btn => {
-    btn.addEventListener("click", () => addCaffeine(num(btn.dataset.mg)));
-  });
-  document.getElementById("caffeineResetBtn").addEventListener("click", resetCaffeineToday);
-  document.getElementById("caffeineGoalBtn").addEventListener("click", promptCaffeineGoal);
-
-  document.querySelectorAll(".alcohol-btn").forEach(btn => {
-    btn.addEventListener("click", () => addAlcohol(num(btn.dataset.units)));
-  });
-  document.getElementById("alcoholResetBtn").addEventListener("click", resetAlcoholToday);
-  document.getElementById("alcoholGoalBtn").addEventListener("click", promptAlcoholGoal);
 
   document.getElementById("connectCalendarBtn").addEventListener("click", openCalendarSheet);
   document.getElementById("calendarCloseBtn").addEventListener("click", closeCalendarSheet);
