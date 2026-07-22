@@ -14,6 +14,7 @@
   const FIREBASE_CONFIG_KEY = "macroTracker.firebaseConfig.v1";
   const WEIGHT_KEY = "macroTracker.weight.v1";
   const WEIGHT_UNIT_KEY = "macroTracker.weightUnit.v1";
+  const WEIGHT_GOAL_KEY = "macroTracker.weightGoal.v1";
   const THEME_KEY = "macroTracker.theme.v1";
   const WATER_KEY = "macroTracker.water.v1";
   const WATER_GOAL_KEY = "macroTracker.waterGoal.v1";
@@ -23,6 +24,7 @@
   const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
   const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
   const GYM_LOG_KEY = "macroTracker.gymLog.v1";
+  const WORKOUT_ROUTINES_KEY = "macroTracker.workoutRoutines.v1";
   const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const WORKOUT_TEMPLATES = {
     fatloss: [
@@ -221,6 +223,14 @@
   function saveWeightUnit(unit){
     localStorage.setItem(WEIGHT_UNIT_KEY, unit);
   }
+  function loadWeightGoal(){
+    const raw = num(localStorage.getItem(WEIGHT_GOAL_KEY));
+    return raw > 0 ? raw : null;
+  }
+  function saveWeightGoal(kg){
+    if(kg > 0) localStorage.setItem(WEIGHT_GOAL_KEY, String(kg));
+    else localStorage.removeItem(WEIGHT_GOAL_KEY);
+  }
   function loadTheme(){
     return localStorage.getItem(THEME_KEY) || "dark";
   }
@@ -292,6 +302,15 @@
   }
   function saveGymLog(map){
     localStorage.setItem(GYM_LOG_KEY, JSON.stringify(map));
+  }
+  function loadWorkoutRoutines(){
+    try{
+      const raw = localStorage.getItem(WORKOUT_ROUTINES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveWorkoutRoutines(list){
+    localStorage.setItem(WORKOUT_ROUTINES_KEY, JSON.stringify(list));
   }
   function loadReminders(){
     try{
@@ -725,9 +744,22 @@
     renderGymLogSummary();
   }
 
+  function getExercisePR(exerciseName){
+    const log = loadGymLog();
+    let max = 0;
+    Object.values(log).forEach(list => {
+      list.forEach(ex => {
+        if(ex.name !== exerciseName) return;
+        ex.sets.forEach(s => { if(s.weight > max) max = s.weight; });
+      });
+    });
+    return max;
+  }
+
   function renderGymLogSheet(){
     document.getElementById("gymLogTitle").textContent = "Log workout — " + formatDateLabel(currentDate);
     renderGymExercisePicker();
+    renderWorkoutRoutines();
     const unit = loadWeightUnit();
     const list = loadGymLog()[currentDate] || [];
     const container = document.getElementById("gymLogExerciseList");
@@ -735,7 +767,9 @@
       container.innerHTML = '<div class="garmin-history-empty">No exercises logged yet — add one below.</div>';
       return;
     }
-    container.innerHTML = list.map(ex => `
+    container.innerHTML = list.map(ex => {
+      const pr = getExercisePR(ex.name);
+      return `
       <div class="gym-exercise-block">
         <div class="gym-exercise-head">
           <div class="gym-exercise-name">${escapeHtml(ex.name)}</div>
@@ -745,7 +779,7 @@
           ? '<div class="gym-set-row">No sets yet</div>'
           : ex.sets.map((s, i) => `
             <div class="gym-set-row">
-              <span>Set ${i + 1}: ${s.reps} × ${s.weight}${unit}</span>
+              <span>Set ${i + 1}: ${s.reps} × ${s.weight}${unit}${(pr > 0 && s.weight === pr) ? " 🏆" : ""}</span>
               <button type="button" class="icon-btn danger gym-remove-set" data-ex-id="${ex.id}" data-set-idx="${i}">✕</button>
             </div>
           `).join("")}
@@ -754,8 +788,8 @@
           <input type="number" inputmode="decimal" class="mono-input gym-set-weight" placeholder="${unit}">
           <button type="button" class="btn btn-secondary gym-add-set" data-ex-id="${ex.id}">+ Set</button>
         </div>
-      </div>
-    `).join("");
+      </div>`;
+    }).join("");
   }
 
   function renderGymLogSummary(){
@@ -769,11 +803,76 @@
     const unit = loadWeightUnit();
     el.style.display = "block";
     el.innerHTML = list.map(ex => {
+      const pr = getExercisePR(ex.name);
+      const hasPR = pr > 0 && ex.sets.some(s => s.weight === pr);
       const setsText = ex.sets.length > 0
         ? ex.sets.map(s => s.reps + "×" + s.weight + unit).join(", ")
         : "no sets logged";
-      return '<div class="gym-summary-row"><strong>' + escapeHtml(ex.name) + '</strong>: ' + escapeHtml(setsText) + '</div>';
+      return '<div class="gym-summary-row"><strong>' + escapeHtml(ex.name) + (hasPR ? " 🏆" : "") +
+        '</strong>: ' + escapeHtml(setsText) + '</div>';
     }).join("");
+  }
+
+  function renderWorkoutRoutines(){
+    const routines = loadWorkoutRoutines();
+    const todayList = loadGymLog()[currentDate] || [];
+    document.getElementById("gymSaveRoutineBtn").style.display = todayList.length > 0 ? "block" : "none";
+
+    const container = document.getElementById("gymRoutinesList");
+    if(routines.length === 0){
+      container.innerHTML = '<div class="garmin-history-empty">No saved routines yet. Log some exercises and save them as a routine.</div>';
+      return;
+    }
+    container.innerHTML = "";
+    routines.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "fav-list-row";
+      row.innerHTML = `
+        <div class="fav-list-info">
+          <div class="fav-list-name">${escapeHtml(r.name)}</div>
+          <div class="fav-list-meta">${r.exercises.length} exercise${r.exercises.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="fav-list-actions">
+          <button type="button" class="btn btn-secondary gym-routine-load-btn">Load</button>
+          <button type="button" class="icon-btn danger gym-routine-delete-btn">✕</button>
+        </div>
+      `;
+      row.querySelector(".gym-routine-load-btn").addEventListener("click", () => loadWorkoutRoutineIntoDay(r.id));
+      row.querySelector(".gym-routine-delete-btn").addEventListener("click", () => deleteWorkoutRoutine(r.id));
+      container.appendChild(row);
+    });
+  }
+
+  function saveTodayAsRoutine(){
+    const todayList = loadGymLog()[currentDate] || [];
+    if(todayList.length === 0) return;
+    const name = prompt("Name this routine:", "");
+    if(!name || !name.trim()) return;
+    const routines = loadWorkoutRoutines();
+    routines.push({ id: uid(), name: name.trim(), exercises: todayList.map(ex => ex.name) });
+    saveWorkoutRoutines(routines);
+    renderWorkoutRoutines();
+  }
+
+  function loadWorkoutRoutineIntoDay(routineId){
+    const routine = loadWorkoutRoutines().find(r => r.id === routineId);
+    if(!routine) return;
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    routine.exercises.forEach(name => {
+      list.push({ id: uid(), name, sets: [] });
+    });
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function deleteWorkoutRoutine(routineId){
+    if(!confirm("Delete this routine?")) return;
+    const routines = loadWorkoutRoutines().filter(r => r.id !== routineId);
+    saveWorkoutRoutines(routines);
+    renderWorkoutRoutines();
   }
 
   async function renderWorkoutCard(){
@@ -2243,6 +2342,7 @@
     garminActivities: GARMIN_ACTIVITIES_KEY,
     weight: WEIGHT_KEY,
     weightUnit: WEIGHT_UNIT_KEY,
+    weightGoal: WEIGHT_GOAL_KEY,
     water: WATER_KEY,
     waterGoal: WATER_GOAL_KEY,
     templates: TEMPLATES_KEY,
@@ -2250,7 +2350,8 @@
     workoutPlan: WORKOUT_PLAN_KEY,
     checkinLog: CHECKIN_LOG_KEY,
     dayNotes: DAY_NOTES_KEY,
-    gymLog: GYM_LOG_KEY
+    gymLog: GYM_LOG_KEY,
+    workoutRoutines: WORKOUT_ROUTINES_KEY
   };
 
   function openBackupSheet(){
@@ -3020,12 +3121,20 @@
       b.classList.toggle("active", b.dataset.unit === weightSheetUnit);
     });
     document.getElementById("weightFieldLabel").textContent = "Weight (" + weightSheetUnit + ")";
+    document.getElementById("weightGoalFieldLabel").textContent = "Goal weight (" + weightSheetUnit + ")";
 
     const existingKg = loadWeights()[currentDate];
     document.getElementById("weightInput").value = existingKg != null
       ? round1(weightSheetUnit === "kg" ? existingKg : kgToLb(existingKg))
       : "";
     document.getElementById("weightDateNote").textContent = "Logging for " + formatDateLabel(currentDate) + ".";
+
+    const goalKg = loadWeightGoal();
+    document.getElementById("weightGoalInput").value = goalKg != null
+      ? round1(weightSheetUnit === "kg" ? goalKg : kgToLb(goalKg))
+      : "";
+
+    renderWeightProjection();
     weightOverlay.classList.add("open");
   }
   function closeWeightSheet(){
@@ -3038,12 +3147,19 @@
       const converted = unit === "kg" ? lbToKg(raw) : kgToLb(raw);
       document.getElementById("weightInput").value = round1(converted);
     }
+    const rawGoal = num(document.getElementById("weightGoalInput").value);
+    if(rawGoal > 0){
+      const convertedGoal = unit === "kg" ? lbToKg(rawGoal) : kgToLb(rawGoal);
+      document.getElementById("weightGoalInput").value = round1(convertedGoal);
+    }
     weightSheetUnit = unit;
     saveWeightUnit(unit);
     document.querySelectorAll("#weightUnitsToggle button").forEach(b => {
       b.classList.toggle("active", b.dataset.unit === unit);
     });
     document.getElementById("weightFieldLabel").textContent = "Weight (" + unit + ")";
+    document.getElementById("weightGoalFieldLabel").textContent = "Goal weight (" + unit + ")";
+    renderWeightProjection();
   }
   function saveWeightFromForm(){
     const raw = num(document.getElementById("weightInput").value);
@@ -3057,6 +3173,71 @@
     saveWeights(map);
     closeWeightSheet();
     render();
+  }
+
+  function saveWeightGoalFromInput(){
+    const raw = num(document.getElementById("weightGoalInput").value);
+    const kg = raw > 0 ? (weightSheetUnit === "kg" ? raw : lbToKg(raw)) : 0;
+    saveWeightGoal(kg);
+    renderWeightProjection();
+  }
+
+  function computeWeightTrendRatePerDay(map){
+    const dates = Object.keys(map).sort();
+    if(dates.length < 2) return null;
+    const recentDates = dates.slice(-60);
+    const refTime = new Date(recentDates[0] + "T00:00:00").getTime();
+    const points = recentDates.map(d => ({
+      x: (new Date(d + "T00:00:00").getTime() - refTime) / 86400000,
+      y: map[d]
+    }));
+    const n = points.length;
+    const sumX = points.reduce((s, p) => s + p.x, 0);
+    const sumY = points.reduce((s, p) => s + p.y, 0);
+    const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+    const sumXX = points.reduce((s, p) => s + p.x * p.x, 0);
+    const denom = n * sumXX - sumX * sumX;
+    if(denom === 0) return 0;
+    return (n * sumXY - sumX * sumY) / denom;
+  }
+
+  function renderWeightProjection(){
+    const note = document.getElementById("weightProjectionNote");
+    const map = loadWeights();
+    const goalKg = loadWeightGoal();
+    const unit = weightSheetUnit;
+
+    if(!goalKg){
+      note.textContent = "Set a goal weight to see a projection based on your logged trend.";
+      return;
+    }
+    const dates = Object.keys(map).sort();
+    if(dates.length === 0){
+      note.textContent = "Log a weight to see progress toward your goal.";
+      return;
+    }
+    const latestKg = map[dates[dates.length - 1]];
+    const goalDisplay = round1(unit === "kg" ? goalKg : kgToLb(goalKg));
+    const remainingKg = goalKg - latestKg;
+    if(Math.abs(remainingKg) < 0.05){
+      note.textContent = "You're at your goal weight (" + goalDisplay + " " + unit + ").";
+      return;
+    }
+    const rate = computeWeightTrendRatePerDay(map);
+    if(rate == null || Math.abs(rate) < 0.001){
+      note.textContent = "Log a few more weigh-ins to see a projection toward " + goalDisplay + " " + unit + ".";
+      return;
+    }
+    const movingTowardGoal = (remainingKg > 0 && rate > 0) || (remainingKg < 0 && rate < 0);
+    if(!movingTowardGoal){
+      note.textContent = "Your recent trend is moving away from your " + goalDisplay + " " + unit + " goal.";
+      return;
+    }
+    const daysToGoal = Math.round(remainingKg / rate);
+    const projectedDate = addDays(todayStr(), daysToGoal);
+    const rateWeekDisplay = round1(Math.abs(unit === "kg" ? rate * 7 : kgToLb(rate * 7)));
+    note.textContent = "At your current rate (~" + rateWeekDisplay + " " + unit + "/week), you'll reach " +
+      goalDisplay + " " + unit + " around " + formatDateLabel(projectedDate) + ".";
   }
 
   // ---------- trends ----------
@@ -3660,6 +3841,7 @@
   document.getElementById("logWeightBtn").addEventListener("click", openWeightSheet);
   document.getElementById("weightCancelBtn").addEventListener("click", closeWeightSheet);
   document.getElementById("weightSaveBtn").addEventListener("click", saveWeightFromForm);
+  document.getElementById("weightGoalInput").addEventListener("input", saveWeightGoalFromInput);
   weightOverlay.addEventListener("click", (e) => { if(e.target === weightOverlay) closeWeightSheet(); });
   document.querySelectorAll("#weightUnitsToggle button").forEach(btn => {
     btn.addEventListener("click", () => setWeightSheetUnit(btn.dataset.unit));
@@ -3672,6 +3854,7 @@
   document.getElementById("gymLogOpenBtn").addEventListener("click", openGymLogSheet);
   document.getElementById("gymLogCloseBtn").addEventListener("click", closeGymLogSheet);
   gymLogOverlay.addEventListener("click", (e) => { if(e.target === gymLogOverlay) closeGymLogSheet(); });
+  document.getElementById("gymSaveRoutineBtn").addEventListener("click", saveTodayAsRoutine);
 
   document.getElementById("gymLogAddExerciseBtn").addEventListener("click", () => {
     const input = document.getElementById("gymLogNewExercise");
