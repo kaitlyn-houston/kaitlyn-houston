@@ -510,6 +510,16 @@
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
+  function formatDateNavLabel(dateStr){
+    const t = todayStr();
+    const y = addDays(t, -1);
+    if(dateStr === t) return "Today";
+    if(dateStr === y) return "Yesterday";
+    const d = new Date(dateStr + "T00:00:00");
+    const weekday = d.toLocaleDateString(undefined, { weekday: "short" });
+    const month = d.toLocaleDateString(undefined, { month: "short" });
+    return weekday + " " + d.getDate() + " " + month;
+  }
   function uid(){
     return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
   }
@@ -555,7 +565,7 @@
   }
 
   function render(){
-    document.getElementById("dateLabel").textContent = formatDateLabel(currentDate);
+    document.getElementById("dateLabel").textContent = formatDateNavLabel(currentDate);
     const entries = entriesForDate(currentDate);
     const goals = getGoalsForDate(currentDate);
     const totals = totalsForEntries(entries);

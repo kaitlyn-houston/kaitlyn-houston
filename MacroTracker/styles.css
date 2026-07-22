@@ -81,7 +81,7 @@ header .date-nav button{
   flex-shrink:0;
 }
 header .date-nav button:active{background:var(--bg-raised);}
-header .date-nav .today-label{color:var(--text);font-weight:500;min-width:92px;text-align:center;}
+header .date-nav .today-label{color:var(--text);font-weight:500;min-width:112px;text-align:center;white-space:nowrap;}
 
 main{max-width:520px;margin:0 auto;padding:0 20px;}
 
