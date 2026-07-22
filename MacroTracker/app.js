@@ -9,9 +9,68 @@
   const GARMIN_ACTIVITIES_KEY = "macroTracker.garminActivities.v1";
   const GCAL_CLIENT_ID_KEY = "macroTracker.gcalClientId.v1";
   const GCAL_TOKEN_KEY = "macroTracker.gcalToken.v1";
+  const GCAL_CALENDAR_IDS_KEY = "macroTracker.gcalCalendarIds.v1";
+  const GCAL_WORKOUT_CALENDAR_IDS_KEY = "macroTracker.gcalWorkoutCalendarIds.v1";
   const WEIGHT_KEY = "macroTracker.weight.v1";
   const WEIGHT_UNIT_KEY = "macroTracker.weightUnit.v1";
   const THEME_KEY = "macroTracker.theme.v1";
+  const WATER_KEY = "macroTracker.water.v1";
+  const WATER_GOAL_KEY = "macroTracker.waterGoal.v1";
+  const TEMPLATES_KEY = "macroTracker.mealTemplates.v1";
+  const WEEKDAY_GOALS_KEY = "macroTracker.weekdayGoals.v1";
+  const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
+  const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const WORKOUT_TEMPLATES = {
+    fatloss: [
+      { name: "Full Body Strength", exercises: "Squats, Push-ups, Bent-over Rows, Plank — 3x10-12" },
+      { name: "Cardio Intervals", exercises: "20-25 min HIIT (bike, run, or rower)" },
+      { name: "Full Body Strength", exercises: "Deadlifts, Overhead Press, Lunges, Side Plank — 3x10-12" },
+      { name: "Steady Cardio", exercises: "30-40 min brisk walk, jog, or cycle" },
+      { name: "Full Body Strength", exercises: "Goblet Squats, Bench Press, Rows, Mountain Climbers — 3x10-12" },
+      { name: "Active Recovery", exercises: "Yoga or a light mobility walk" }
+    ],
+    muscle: [
+      { name: "Push Day", exercises: "Bench Press, Overhead Press, Triceps Dips — 4x8-10" },
+      { name: "Pull Day", exercises: "Deadlifts, Barbell Rows, Bicep Curls — 4x8-10" },
+      { name: "Leg Day", exercises: "Squats, Romanian Deadlifts, Calf Raises — 4x8-10" },
+      { name: "Push Day", exercises: "Incline Press, Lateral Raises, Triceps Pushdowns — 3x10-12" },
+      { name: "Pull Day", exercises: "Pull-ups, Cable Rows, Face Pulls — 3x10-12" },
+      { name: "Leg Day", exercises: "Front Squats, Walking Lunges, Leg Press — 3x10-12" }
+    ],
+    endurance: [
+      { name: "Easy Run/Cycle", exercises: "30 min at an easy, conversational pace" },
+      { name: "Interval Training", exercises: "6x400m repeats or 20 min HIIT" },
+      { name: "Strength Support", exercises: "Squats, Lunges, Core circuit — 3x12" },
+      { name: "Long Steady Cardio", exercises: "45-60 min at a steady pace" },
+      { name: "Tempo Effort", exercises: "20-30 min at a comfortably hard pace" },
+      { name: "Cross-training", exercises: "Swim, row, or hike" }
+    ],
+    general: [
+      { name: "Full Body Strength", exercises: "Squats, Push-ups, Rows, Plank — 3x10-12" },
+      { name: "Cardio", exercises: "20-30 min of your choice (walk, bike, swim)" },
+      { name: "Mobility / Yoga", exercises: "20-30 min stretching or a yoga flow" },
+      { name: "Full Body Strength", exercises: "Lunges, Overhead Press, Deadlifts, Side Plank — 3x10-12" },
+      { name: "Cardio", exercises: "20-30 min of your choice" },
+      { name: "Active Recovery", exercises: "Light walk or mobility work" }
+    ]
+  };
+  const WORKOUT_DAY_SLOTS = {
+    3: [0, 2, 4],
+    4: [0, 1, 3, 4],
+    5: [0, 1, 2, 4, 5],
+    6: [0, 1, 2, 3, 4, 5]
+  };
+  const WORKOUT_KEYWORDS = [
+    "run", "ride", "cycle", "cycling", "bike", "swim", "workout", "training",
+    "gym", "yoga", "hiit", "race", "spin", "pilates", "crossfit", "bootcamp",
+    "walk", "hike", "strength", "cardio"
+  ];
+  const NON_WORKOUT_LABELS = [
+    "rest", "work", "working", "off", "day off", "off day", "busy",
+    "travel", "sick", "vacation", "holiday", "none", "n/a"
+  ];
+  let lastWorkoutRecommendation = null;
   const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
 
   const MEALS = [
@@ -102,6 +161,26 @@
   function clearGcalToken(){
     localStorage.removeItem(GCAL_TOKEN_KEY);
   }
+  function loadGcalCalendarIds(){
+    try{
+      const raw = localStorage.getItem(GCAL_CALENDAR_IDS_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return (Array.isArray(parsed) && parsed.length > 0) ? parsed : ["primary"];
+    }catch(e){ return ["primary"]; }
+  }
+  function saveGcalCalendarIds(ids){
+    localStorage.setItem(GCAL_CALENDAR_IDS_KEY, JSON.stringify(ids));
+  }
+  function loadGcalWorkoutCalendarIds(){
+    try{
+      const raw = localStorage.getItem(GCAL_WORKOUT_CALENDAR_IDS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(e){ return []; }
+  }
+  function saveGcalWorkoutCalendarIds(ids){
+    localStorage.setItem(GCAL_WORKOUT_CALENDAR_IDS_KEY, JSON.stringify(ids));
+  }
   function loadWeights(){
     try{
       const raw = localStorage.getItem(WEIGHT_KEY);
@@ -122,6 +201,63 @@
   }
   function saveTheme(theme){
     localStorage.setItem(THEME_KEY, theme);
+  }
+  function loadWater(){
+    try{
+      const raw = localStorage.getItem(WATER_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWater(map){
+    localStorage.setItem(WATER_KEY, JSON.stringify(map));
+  }
+  function loadWaterGoal(){
+    const raw = num(localStorage.getItem(WATER_GOAL_KEY));
+    return raw > 0 ? raw : 2000;
+  }
+  function saveWaterGoal(ml){
+    localStorage.setItem(WATER_GOAL_KEY, String(ml));
+  }
+  function loadTemplates(){
+    try{
+      const raw = localStorage.getItem(TEMPLATES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveTemplates(list){
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(list));
+  }
+  function loadWeekdayGoals(){
+    try{
+      const raw = localStorage.getItem(WEEKDAY_GOALS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWeekdayGoals(map){
+    localStorage.setItem(WEEKDAY_GOALS_KEY, JSON.stringify(map));
+  }
+  function getGoalsForDate(dateStr){
+    const dow = new Date(dateStr + "T00:00:00").getDay();
+    const overrides = loadWeekdayGoals();
+    return overrides[dow] || loadGoals();
+  }
+  function loadWorkoutPlan(){
+    try{
+      const raw = localStorage.getItem(WORKOUT_PLAN_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWorkoutPlan(map){
+    localStorage.setItem(WORKOUT_PLAN_KEY, JSON.stringify(map));
+  }
+  function currentWeekDates(refDateStr){
+    const ref = refDateStr || todayStr();
+    const dow = new Date(ref + "T00:00:00").getDay();
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const monday = addDays(ref, mondayOffset);
+    const dates = [];
+    for(let i = 0; i < 7; i++) dates.push(addDays(monday, i));
+    return dates;
   }
   function applyTheme(theme){
     document.documentElement.setAttribute("data-theme", theme);
@@ -199,16 +335,338 @@
   function render(){
     document.getElementById("dateLabel").textContent = formatDateLabel(currentDate);
     const entries = entriesForDate(currentDate);
-    const goals = loadGoals();
+    const goals = getGoalsForDate(currentDate);
     const totals = totalsForEntries(entries);
 
     renderSummary(totals, goals);
     renderMeals(entries);
     renderBurnedCard(totals);
     renderWeightCard();
+    renderWaterCard();
+    renderWorkoutCard();
     renderActivityCard();
     renderCalendarCard();
     renderInsight(totals, goals);
+  }
+
+  function renderWaterCard(){
+    const ml = loadWater()[currentDate] || 0;
+    const goal = loadWaterGoal();
+    document.getElementById("waterAmountNum").textContent = ml + " / " + goal + " ml";
+    const pct = goal > 0 ? Math.min((ml / goal) * 100, 100) : 0;
+    document.getElementById("waterBar").style.width = pct + "%";
+  }
+
+  function addWater(deltaMl){
+    const map = loadWater();
+    const cur = map[currentDate] || 0;
+    map[currentDate] = Math.max(cur + deltaMl, 0);
+    saveWater(map);
+    renderWaterCard();
+  }
+
+  function resetWaterToday(){
+    if(!confirm("Reset today's water to 0?")) return;
+    const map = loadWater();
+    map[currentDate] = 0;
+    saveWater(map);
+    renderWaterCard();
+  }
+
+  function promptWaterGoal(){
+    const input = prompt("Daily water goal (ml):", String(loadWaterGoal()));
+    if(input == null) return;
+    const val = num(input);
+    if(val > 0){
+      saveWaterGoal(Math.round(val));
+      renderWaterCard();
+    }
+  }
+
+  const WORKOUT_WINDOW_START_HOUR = 6;
+  const WORKOUT_WINDOW_END_HOUR = 21;
+  const MIN_WORKOUT_GAP_MINUTES = 30;
+
+  function formatTimeShort(d){
+    return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function findBestWorkoutWindow(events, dateStr){
+    const dayStart = new Date(dateStr + "T00:00:00");
+    dayStart.setHours(WORKOUT_WINDOW_START_HOUR, 0, 0, 0);
+    const dayEnd = new Date(dateStr + "T00:00:00");
+    dayEnd.setHours(WORKOUT_WINDOW_END_HOUR, 0, 0, 0);
+
+    const busy = events
+      .filter(ev => ev.start && ev.start.dateTime && ev.end && ev.end.dateTime)
+      .map(ev => ({ start: new Date(ev.start.dateTime), end: new Date(ev.end.dateTime) }))
+      .filter(b => b.end > dayStart && b.start < dayEnd)
+      .map(b => ({
+        start: b.start < dayStart ? dayStart : b.start,
+        end: b.end > dayEnd ? dayEnd : b.end
+      }))
+      .sort((a, b) => a.start - b.start);
+
+    const merged = [];
+    busy.forEach(b => {
+      const last = merged[merged.length - 1];
+      if(last && b.start <= last.end){
+        if(b.end > last.end) last.end = b.end;
+      } else {
+        merged.push({ start: b.start, end: b.end });
+      }
+    });
+
+    const gaps = [];
+    let cursor = dayStart;
+    merged.forEach(b => {
+      if(b.start > cursor) gaps.push({ start: cursor, end: b.start });
+      if(b.end > cursor) cursor = b.end;
+    });
+    if(cursor < dayEnd) gaps.push({ start: cursor, end: dayEnd });
+
+    if(gaps.length === 0) return null;
+    const best = gaps.reduce((a, b) => ((b.end - b.start) > (a.end - a.start) ? b : a));
+    const minutes = (best.end - best.start) / 60000;
+    return minutes >= MIN_WORKOUT_GAP_MINUTES ? best : null;
+  }
+
+  async function renderWorkoutCard(){
+    const plan = loadWorkoutPlan();
+    const viewedDate = currentDate;
+    const dates = currentWeekDates(viewedDate);
+
+    const strip = document.getElementById("workoutWeekStrip");
+    strip.innerHTML = "";
+    dates.forEach((d, idx) => {
+      const entry = plan[d];
+      let cls = "workout-day-pill";
+      if(d === viewedDate) cls += " today";
+      if(entry && entry.label && !NON_WORKOUT_LABELS.includes(entry.label.trim().toLowerCase())) cls += " planned";
+      if(entry && entry.done) cls += " done";
+      const pill = document.createElement("div");
+      pill.className = cls;
+      pill.textContent = WORKOUT_DAY_ABBRS[idx];
+      pill.title = entry && entry.label ? entry.label + (entry.done ? " (done)" : "") : "Nothing planned";
+      strip.appendChild(pill);
+    });
+
+    const viewedEntry = plan[viewedDate];
+    const dayLabel = formatDateLabel(viewedDate);
+    const label = document.getElementById("workoutTodayLabel");
+    label.textContent = viewedEntry && viewedEntry.label
+      ? dayLabel + ": " + viewedEntry.label + (viewedEntry.done ? " ✓" : "")
+      : "Nothing planned for " + dayLabel + ".";
+
+    const bestTimeEl = document.getElementById("workoutBestTime");
+    bestTimeEl.textContent = "";
+    const hasWorkoutPlanned = viewedEntry && viewedEntry.label &&
+      !NON_WORKOUT_LABELS.includes(viewedEntry.label.trim().toLowerCase());
+    if(!hasWorkoutPlanned || !gcalAccessToken) return;
+    const events = await fetchCalendarEventsForDate(viewedDate);
+    if(viewedDate !== currentDate) return; // user navigated away while this was in flight
+    if(events === null) return;
+    const window = findBestWorkoutWindow(events, viewedDate);
+    bestTimeEl.textContent = window
+      ? "🕐 Best window " + dayLabel + ": " + formatTimeShort(window.start) + " – " + formatTimeShort(window.end)
+      : "🕐 " + dayLabel + " looks packed — no clear " + MIN_WORKOUT_GAP_MINUTES + "+ min opening between " +
+        WORKOUT_WINDOW_START_HOUR + "am–" + (WORKOUT_WINDOW_END_HOUR - 12) + "pm.";
+  }
+
+  // ---------- workout plan sheet ----------
+  const workoutPlanOverlay = document.getElementById("workoutPlanOverlay");
+
+  function openWorkoutPlanSheet(){
+    renderWorkoutPlanForm();
+    workoutPlanOverlay.classList.add("open");
+  }
+  function closeWorkoutPlanSheet(){
+    workoutPlanOverlay.classList.remove("open");
+  }
+
+  function renderWorkoutPlanForm(){
+    const plan = loadWorkoutPlan();
+    const dates = currentWeekDates();
+    const today = todayStr();
+    const container = document.getElementById("workoutPlanList");
+    container.innerHTML = "";
+
+    dates.forEach((d, idx) => {
+      const entry = plan[d] || { label: "", done: false };
+      const dLabel = new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const row = document.createElement("div");
+      row.className = "workout-plan-row" + (d === today ? " today" : "");
+      row.innerHTML = `
+        <div class="workout-plan-head">
+          <span class="workout-plan-day">${WORKOUT_DAY_ABBRS[idx]} · ${dLabel}</span>
+          <label class="workout-plan-done">
+            <input type="checkbox" class="workout-done-toggle" data-date="${d}" ${entry.done ? "checked" : ""}>
+            Done
+          </label>
+        </div>
+        <input type="text" class="mono-input workout-label-input" data-date="${d}" placeholder="e.g. Leg day, Rest, 5k run" value="${escapeHtml(entry.label)}">
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function saveWorkoutPlanFromForm(){
+    const plan = loadWorkoutPlan();
+    document.querySelectorAll(".workout-label-input").forEach(input => {
+      const d = input.dataset.date;
+      const label = input.value.trim();
+      const doneToggle = document.querySelector('.workout-done-toggle[data-date="' + d + '"]');
+      const done = doneToggle ? doneToggle.checked : false;
+      if(!label && !done){
+        delete plan[d];
+      } else {
+        plan[d] = { label, done };
+      }
+    });
+    saveWorkoutPlan(plan);
+    closeWorkoutPlanSheet();
+    renderWorkoutCard();
+  }
+
+  // ---------- workout recommendations sheet ----------
+  const workoutRecOverlay = document.getElementById("workoutRecOverlay");
+
+  function openWorkoutRecSheet(){
+    document.getElementById("workoutRecForm").style.display = "block";
+    document.getElementById("workoutRecResults").style.display = "none";
+    workoutRecOverlay.classList.add("open");
+  }
+  function closeWorkoutRecSheet(){
+    workoutRecOverlay.classList.remove("open");
+  }
+  function backToWorkoutRecForm(){
+    document.getElementById("workoutRecForm").style.display = "block";
+    document.getElementById("workoutRecResults").style.display = "none";
+  }
+
+  function eventDurationHours(ev){
+    const start = ev.start && ev.start.dateTime ? new Date(ev.start.dateTime) : null;
+    const end = ev.end && ev.end.dateTime ? new Date(ev.end.dateTime) : null;
+    if(start && end){
+      return Math.max((end - start) / 3600000, 0);
+    }
+    return 2; // all-day / date-only event: no time range, so use a flat estimate
+  }
+
+  function isWorkoutEvent(ev){
+    if(ev._calendarId && loadGcalWorkoutCalendarIds().includes(ev._calendarId)) return true;
+    const title = (ev.summary || "").toLowerCase();
+    return WORKOUT_KEYWORDS.some(k => title.includes(k));
+  }
+
+  async function computeWeekBusyness(dates){
+    if(!gcalAccessToken) return null;
+    const results = await Promise.all(dates.map(d => fetchCalendarEventsForDate(d)));
+    if(results.every(r => r === null)) return null;
+    const map = {};
+    dates.forEach((d, i) => {
+      const events = results[i] || [];
+      const workoutEvents = events.filter(isWorkoutEvent);
+      map[d] = {
+        hours: events.reduce((sum, ev) => sum + eventDurationHours(ev), 0),
+        workoutTitle: workoutEvents.length > 0
+          ? workoutEvents.map(ev => ev.summary || "Workout").join(" + ")
+          : null
+      };
+    });
+    return map;
+  }
+
+  async function generateWorkoutRecommendation(){
+    const goal = document.getElementById("recGoalSelect").value;
+    const days = parseInt(document.getElementById("recDaysSelect").value, 10);
+    const template = WORKOUT_TEMPLATES[goal];
+    const dates = currentWeekDates();
+
+    const genBtn = document.getElementById("recGenerateBtn");
+    genBtn.disabled = true;
+    genBtn.textContent = gcalAccessToken ? "Checking your calendar…" : "Generating…";
+
+    const busyness = await computeWeekBusyness(dates);
+
+    const plan = WORKOUT_DAY_ABBRS.map(() => null);
+    const filledIdx = new Set();
+
+    // Lock in days that already have a workout-like event on the calendar — don't suggest over them.
+    if(busyness){
+      dates.forEach((d, idx) => {
+        const info = busyness[d];
+        if(info && info.workoutTitle){
+          plan[idx] = { name: info.workoutTitle, exercises: "Already on your calendar", fromCalendar: true };
+          filledIdx.add(idx);
+        }
+      });
+    }
+
+    const remaining = Math.max(days - filledIdx.size, 0);
+    let candidateIdx;
+    if(busyness){
+      candidateIdx = dates
+        .map((d, idx) => ({ idx, hours: busyness[d].hours }))
+        .filter(x => !filledIdx.has(x.idx))
+        .sort((a, b) => a.hours - b.hours || a.idx - b.idx)
+        .slice(0, remaining)
+        .map(x => x.idx)
+        .sort((a, b) => a - b);
+    } else {
+      candidateIdx = WORKOUT_DAY_SLOTS[days].filter(idx => !filledIdx.has(idx)).slice(0, remaining);
+    }
+
+    let templateCursor = 0;
+    candidateIdx.forEach(idx => {
+      plan[idx] = template[templateCursor % template.length];
+      templateCursor++;
+    });
+    lastWorkoutRecommendation = plan;
+
+    const list = document.getElementById("workoutRecList");
+    list.innerHTML = "";
+    plan.forEach((entry, idx) => {
+      const row = document.createElement("div");
+      row.className = "workout-rec-row";
+      const info = busyness ? busyness[dates[idx]] : null;
+      if(entry && entry.fromCalendar){
+        row.innerHTML = `<div class="workout-rec-day">${WORKOUT_DAY_ABBRS[idx]} — ${escapeHtml(entry.name)} ` +
+          `<span class="workout-rec-busy">(from calendar)</span></div>`;
+      } else {
+        const busyBit = (info && info.hours > 0)
+          ? ` <span class="workout-rec-busy">(${round1(info.hours)}h scheduled)</span>`
+          : "";
+        if(entry){
+          row.innerHTML = `<div class="workout-rec-day">${WORKOUT_DAY_ABBRS[idx]} — ${escapeHtml(entry.name)}${busyBit}</div>` +
+            `<div class="workout-rec-exercises">${escapeHtml(entry.exercises)}</div>`;
+        } else {
+          row.innerHTML = `<div class="workout-rec-day rest">${WORKOUT_DAY_ABBRS[idx]} — Rest${busyBit}</div>`;
+        }
+      }
+      list.appendChild(row);
+    });
+
+    document.getElementById("workoutRecCalNote").style.display = busyness ? "block" : "none";
+    genBtn.disabled = false;
+    genBtn.textContent = "Generate plan";
+    document.getElementById("workoutRecForm").style.display = "none";
+    document.getElementById("workoutRecResults").style.display = "block";
+  }
+
+  function applyWorkoutRecommendation(){
+    if(!lastWorkoutRecommendation) return;
+    const dates = currentWeekDates();
+    const plan = loadWorkoutPlan();
+    dates.forEach((d, idx) => {
+      const entry = lastWorkoutRecommendation[idx];
+      const prevDone = (plan[d] && plan[d].done) || false;
+      plan[d] = entry ? { label: entry.name, done: prevDone } : { label: "Rest", done: prevDone };
+    });
+    saveWorkoutPlan(plan);
+    closeWorkoutRecSheet();
+    closeWorkoutPlanSheet();
+    renderWorkoutCard();
   }
 
   function renderActivityCard(){
@@ -265,9 +723,10 @@
     document.getElementById("burnedCardNet").textContent = "net " + net + " kcal today";
   }
 
-  function dayHitsGoal(dateStr, goals){
+  function dayHitsGoal(dateStr){
     const totals = totalsForEntries(entriesForDate(dateStr));
     if(totals.calories === 0) return false;
+    const goals = getGoalsForDate(dateStr);
     const burned = loadGarminCalories()[dateStr];
     const net = burned != null ? totals.calories - burned : totals.calories;
     const withinCalories = net >= goals.calories * 0.85 && net <= goals.calories * 1.15;
@@ -275,11 +734,11 @@
     return withinCalories && hitProtein;
   }
 
-  function computeStreak(goals){
+  function computeStreak(){
     const today = todayStr();
-    let cursor = dayHitsGoal(today, goals) ? today : addDays(today, -1);
+    let cursor = dayHitsGoal(today) ? today : addDays(today, -1);
     let streak = 0;
-    while(dayHitsGoal(cursor, goals)){
+    while(dayHitsGoal(cursor)){
       streak++;
       cursor = addDays(cursor, -1);
     }
@@ -317,7 +776,7 @@
       msg = "You have about " + remaining + " kcal left today" + burnedNote + ". You're on track.";
     }
 
-    const streak = computeStreak(goals);
+    const streak = computeStreak();
     const streakBit = streak >= 2
       ? '<div class="insight-streak">🔥 ' + streak + '-day streak of hitting your goals</div>'
       : "";
@@ -379,7 +838,12 @@
 
       const header = document.createElement("div");
       header.className = "meal-header";
-      header.innerHTML = `<h2>${meal.label}</h2><span class="meal-cal">${Math.round(mealCals)} kcal</span>`;
+      header.innerHTML = `<h2>${meal.label}</h2>
+        <div class="meal-header-actions">
+          <span class="meal-cal">${Math.round(mealCals)} kcal</span>
+          <button type="button" class="icon-btn save-template-btn" title="Save as template">💾</button>
+        </div>`;
+      header.querySelector(".save-template-btn").addEventListener("click", () => saveMealAsTemplate(meal.id, meal.label));
       section.appendChild(header);
 
       mealEntries.forEach(e => {
@@ -431,6 +895,202 @@
       });
     });
     saveEntries(entries);
+    render();
+  }
+
+  function saveMealAsTemplate(mealId, mealLabel){
+    const mealEntries = entriesForDate(currentDate).filter(e => e.meal === mealId);
+    if(mealEntries.length === 0) return;
+    const name = prompt("Name this template:", mealLabel);
+    if(!name || !name.trim()) return;
+    const templates = loadTemplates();
+    templates.push({
+      id: uid(),
+      name: name.trim(),
+      items: mealEntries.map(e => ({
+        name: e.name,
+        serving: e.serving,
+        calories: num(e.calories),
+        protein: num(e.protein),
+        carbs: num(e.carbs),
+        fat: num(e.fat)
+      }))
+    });
+    saveTemplates(templates);
+    alert('Saved "' + name.trim() + '" as a template.');
+  }
+
+  // ---------- meal templates sheet ----------
+  const templatesOverlay = document.getElementById("templatesOverlay");
+
+  function openTemplatesSheet(){
+    renderTemplatesList();
+    templatesOverlay.classList.add("open");
+  }
+  function closeTemplatesSheet(){
+    templatesOverlay.classList.remove("open");
+  }
+
+  function renderTemplatesList(){
+    const templates = loadTemplates();
+    const list = document.getElementById("templatesList");
+    list.innerHTML = "";
+
+    if(templates.length === 0){
+      list.innerHTML = '<div class="garmin-history-empty">No templates yet. Save one from the 💾 button on a meal you\'ve logged.</div>';
+      return;
+    }
+
+    templates.forEach(t => {
+      const totalCal = Math.round(t.items.reduce((s, i) => s + num(i.calories), 0));
+      const row = document.createElement("div");
+      row.className = "fav-list-row";
+      row.innerHTML = `
+        <div class="fav-list-info">
+          <div class="fav-list-name">${escapeHtml(t.name)}</div>
+          <div class="fav-list-meta">${t.items.length} item${t.items.length === 1 ? "" : "s"} · ${totalCal} kcal</div>
+        </div>
+        <div class="fav-list-actions">
+          <button type="button" class="btn btn-secondary" data-id="${t.id}" data-action="log">Log</button>
+          <button type="button" class="icon-btn danger" data-id="${t.id}" data-action="del">✕</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll('button[data-action="log"]').forEach(btn => {
+      btn.addEventListener("click", () => logTemplate(btn.dataset.id));
+    });
+    list.querySelectorAll('button[data-action="del"]').forEach(btn => {
+      btn.addEventListener("click", () => {
+        saveTemplates(loadTemplates().filter(t => t.id !== btn.dataset.id));
+        renderTemplatesList();
+      });
+    });
+  }
+
+  function logTemplate(id){
+    const template = loadTemplates().find(t => t.id === id);
+    if(!template) return;
+    const meal = guessMealByTime();
+    const entries = loadEntries();
+    template.items.forEach(item => {
+      entries.push({
+        ...item,
+        id: uid(),
+        meal,
+        date: currentDate,
+        photo: null,
+        createdAt: Date.now()
+      });
+    });
+    saveEntries(entries);
+    closeTemplatesSheet();
+    render();
+  }
+
+  // ---------- food log search / history sheet ----------
+  const historyOverlay = document.getElementById("historyOverlay");
+
+  function openHistorySheet(){
+    document.getElementById("historySearchInput").value = "";
+    renderHistoryResults("");
+    historyOverlay.classList.add("open");
+    setTimeout(() => document.getElementById("historySearchInput").focus(), 50);
+  }
+  function closeHistorySheet(){
+    historyOverlay.classList.remove("open");
+  }
+
+  function renderHistoryResults(query){
+    const q = query.trim().toLowerCase();
+    const list = document.getElementById("historyResults");
+    const summary = document.getElementById("historySummary");
+    list.innerHTML = "";
+
+    if(!q){
+      summary.textContent = "Type a food name to search your full log.";
+      return;
+    }
+
+    const matches = loadEntries()
+      .filter(e => e.name.toLowerCase().includes(q))
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+
+    if(matches.length === 0){
+      summary.textContent = "No matches.";
+      return;
+    }
+
+    const avgCal = Math.round(matches.reduce((s, e) => s + num(e.calories), 0) / matches.length);
+    summary.textContent = matches.length + " match" + (matches.length === 1 ? "" : "es") + " · avg " + avgCal + " kcal";
+
+    matches.slice(0, 100).forEach(e => {
+      const row = document.createElement("div");
+      row.className = "garmin-history-row";
+      row.innerHTML = '<span class="garmin-history-date">' + escapeHtml(formatDateLabel(e.date)) + ' · ' + escapeHtml(e.name) + '</span>' +
+        '<span class="garmin-history-cal">' + Math.round(num(e.calories)) + ' kcal</span>';
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- weekday goals sheet ----------
+  const weekdayGoalsOverlay = document.getElementById("weekdayGoalsOverlay");
+
+  function openWeekdayGoalsSheet(){
+    renderWeekdayGoalsForm();
+    weekdayGoalsOverlay.classList.add("open");
+  }
+  function closeWeekdayGoalsSheet(){
+    weekdayGoalsOverlay.classList.remove("open");
+  }
+
+  function renderWeekdayGoalsForm(){
+    const overrides = loadWeekdayGoals();
+    const defaults = loadGoals();
+    const container = document.getElementById("weekdayGoalsList");
+    container.innerHTML = "";
+
+    WEEKDAY_NAMES.forEach((label, idx) => {
+      const existing = overrides[idx];
+      const row = document.createElement("div");
+      row.className = "weekday-goal-row";
+      row.innerHTML = `
+        <label class="weekday-goal-head">
+          <input type="checkbox" class="weekday-goal-toggle" data-day="${idx}" ${existing ? "checked" : ""}>
+          <span>${label}</span>
+        </label>
+        <div class="weekday-goal-fields" style="display:${existing ? "grid" : "none"};">
+          <input type="number" inputmode="decimal" class="mono-input wd-cal" placeholder="Calories" value="${existing ? existing.calories : defaults.calories}">
+          <input type="number" inputmode="decimal" class="mono-input wd-protein" placeholder="Protein g" value="${existing ? existing.protein : defaults.protein}">
+          <input type="number" inputmode="decimal" class="mono-input wd-carbs" placeholder="Carbs g" value="${existing ? existing.carbs : defaults.carbs}">
+          <input type="number" inputmode="decimal" class="mono-input wd-fat" placeholder="Fat g" value="${existing ? existing.fat : defaults.fat}">
+        </div>
+      `;
+      container.appendChild(row);
+    });
+
+    container.querySelectorAll(".weekday-goal-toggle").forEach(cb => {
+      cb.addEventListener("change", () => {
+        cb.closest(".weekday-goal-row").querySelector(".weekday-goal-fields").style.display = cb.checked ? "grid" : "none";
+      });
+    });
+  }
+
+  function saveWeekdayGoalsFromForm(){
+    const overrides = {};
+    document.querySelectorAll("#weekdayGoalsList .weekday-goal-row").forEach(row => {
+      const cb = row.querySelector(".weekday-goal-toggle");
+      if(!cb.checked) return;
+      overrides[cb.dataset.day] = {
+        calories: num(row.querySelector(".wd-cal").value) || DEFAULT_GOALS.calories,
+        protein: num(row.querySelector(".wd-protein").value) || DEFAULT_GOALS.protein,
+        carbs: num(row.querySelector(".wd-carbs").value) || DEFAULT_GOALS.carbs,
+        fat: num(row.querySelector(".wd-fat").value) || DEFAULT_GOALS.fat
+      };
+    });
+    saveWeekdayGoals(overrides);
+    closeWeekdayGoalsSheet();
     render();
   }
 
@@ -939,7 +1599,12 @@
     garminCalories: GARMIN_KEY,
     garminActivities: GARMIN_ACTIVITIES_KEY,
     weight: WEIGHT_KEY,
-    weightUnit: WEIGHT_UNIT_KEY
+    weightUnit: WEIGHT_UNIT_KEY,
+    water: WATER_KEY,
+    waterGoal: WATER_GOAL_KEY,
+    templates: TEMPLATES_KEY,
+    weekdayGoals: WEEKDAY_GOALS_KEY,
+    workoutPlan: WORKOUT_PLAN_KEY
   };
 
   function openBackupSheet(){
@@ -1196,11 +1861,56 @@
     note.textContent = gcalAccessToken
       ? "Connected — reconnects automatically while you stay signed into Google."
       : "Not connected.";
+    document.getElementById("gcalConnectSection").style.display = gcalAccessToken ? "none" : "block";
+    document.getElementById("gcalManageSection").style.display = gcalAccessToken ? "block" : "none";
+  }
+
+  async function renderCalendarPicker(){
+    if(!gcalAccessToken) return;
+    const list = document.getElementById("gcalCalendarList");
+    list.innerHTML = '<div class="garmin-history-empty">Loading your calendars…</div>';
+    const calendars = await fetchCalendarList();
+    if(calendars.length === 0){
+      list.innerHTML = '<div class="garmin-history-empty">Couldn\'t load your calendars.</div>';
+      return;
+    }
+    const selected = loadGcalCalendarIds();
+    const workoutIds = loadGcalWorkoutCalendarIds();
+    list.innerHTML = "";
+    calendars.forEach(cal => {
+      const row = document.createElement("div");
+      row.className = "gcal-calendar-row";
+      const checked = selected.includes(cal.id) ? "checked" : "";
+      const workoutChecked = workoutIds.includes(cal.id) ? "checked" : "";
+      const color = cal.backgroundColor || "#9C8F82";
+      row.innerHTML = `
+        <label class="gcal-calendar-main">
+          <input type="checkbox" class="gcal-calendar-toggle" value="${escapeHtml(cal.id)}" ${checked}>
+          <span class="gcal-calendar-dot" style="background:${color};"></span>
+          <span class="gcal-calendar-name">${escapeHtml(cal.summary || cal.id)}</span>
+        </label>
+        <label class="gcal-workout-flag" title="Treat every event on this calendar as a workout">
+          <input type="checkbox" class="gcal-workout-toggle" value="${escapeHtml(cal.id)}" ${workoutChecked}> 🏋️
+        </label>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function saveCalendarSelectionFromForm(){
+    const ids = Array.from(document.querySelectorAll(".gcal-calendar-toggle:checked")).map(cb => cb.value);
+    saveGcalCalendarIds(ids.length > 0 ? ids : ["primary"]);
+    const workoutIds = Array.from(document.querySelectorAll(".gcal-workout-toggle:checked")).map(cb => cb.value);
+    saveGcalWorkoutCalendarIds(workoutIds);
+    renderCalendarCard();
+    renderWorkoutCard();
+    alert("Calendar selection saved.");
   }
 
   function openCalendarSheet(){
     document.getElementById("gcalClientIdInput").value = loadGcalClientId();
     updateGcalStatus();
+    if(gcalAccessToken) renderCalendarPicker();
     calendarOverlay.classList.add("open");
   }
   function closeCalendarSheet(){
@@ -1235,6 +1945,7 @@
           gcalAccessToken = tokenResponse.access_token;
           saveGcalToken(tokenResponse.access_token, tokenResponse.expires_in);
           updateGcalStatus();
+          renderCalendarPicker();
           renderCalendarCard();
         }
       });
@@ -1250,6 +1961,17 @@
     }
     if(attemptsLeft <= 0) return;
     setTimeout(() => whenGoogleReady(cb, attemptsLeft - 1), 200);
+  }
+
+  let reconnectingGcal = false;
+  function attemptSilentReconnect(){
+    if(reconnectingGcal || !loadGcalClientId()) return;
+    reconnectingGcal = true;
+    whenGoogleReady(() => {
+      const client = ensureGcalTokenClient(true);
+      if(client) client.requestAccessToken({ prompt: "" });
+      reconnectingGcal = false;
+    });
   }
 
   function initGoogleCalendarOnLoad(){
@@ -1282,11 +2004,22 @@
     renderCalendarCard();
   }
 
-  async function fetchCalendarEventsForDate(dateStr){
-    if(!gcalAccessToken) return null;
-    const timeMin = new Date(dateStr + "T00:00:00").toISOString();
-    const timeMax = new Date(dateStr + "T23:59:59").toISOString();
-    const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events" +
+  async function fetchCalendarList(){
+    if(!gcalAccessToken) return [];
+    try{
+      const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
+        headers: { Authorization: "Bearer " + gcalAccessToken }
+      });
+      if(!res.ok) return [];
+      const data = await res.json();
+      return data.items || [];
+    }catch(e){
+      return [];
+    }
+  }
+
+  async function fetchEventsFromCalendar(calendarId, timeMin, timeMax){
+    const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(calendarId) + "/events" +
       "?timeMin=" + encodeURIComponent(timeMin) +
       "&timeMax=" + encodeURIComponent(timeMax) +
       "&singleEvents=true&orderBy=startTime";
@@ -1296,14 +2029,50 @@
         gcalAccessToken = null;
         clearGcalToken();
         updateGcalStatus();
+        attemptSilentReconnect();
         return null;
       }
       if(!res.ok) return null;
       const data = await res.json();
-      return data.items || [];
+      return (data.items || []).map(ev => ({ ...ev, _calendarId: calendarId }));
     }catch(e){
       return null;
     }
+  }
+
+  function eventBelongsToDate(ev, dateStr){
+    if(ev.start && ev.start.dateTime){
+      return dateToStr(new Date(ev.start.dateTime)) === dateStr;
+    }
+    if(ev.start && ev.start.date){
+      // All-day events are timezone-naive on Google's side, so the timeMin/timeMax
+      // window can pull in the adjacent day's all-day event when the local offset
+      // is non-zero. Only keep it if dateStr actually falls within the event's
+      // [start, end) range — end.date is exclusive per the Calendar API, and
+      // multi-day all-day events (e.g. a training block) span more than one day.
+      const start = ev.start.date;
+      const end = (ev.end && ev.end.date) ? ev.end.date : start;
+      return dateStr >= start && dateStr < end;
+    }
+    return false;
+  }
+
+  async function fetchCalendarEventsForDate(dateStr){
+    if(!gcalAccessToken) return null;
+    const timeMin = new Date(dateStr + "T00:00:00").toISOString();
+    const timeMax = new Date(dateStr + "T23:59:59").toISOString();
+    const calendarIds = loadGcalCalendarIds();
+
+    const results = await Promise.all(calendarIds.map(id => fetchEventsFromCalendar(id, timeMin, timeMax)));
+    if(results.every(r => r === null)) return null;
+
+    const merged = results.filter(r => r).flat().filter(ev => eventBelongsToDate(ev, dateStr));
+    merged.sort((a, b) => {
+      const aStart = (a.start && (a.start.dateTime || a.start.date)) || "";
+      const bStart = (b.start && (b.start.dateTime || b.start.date)) || "";
+      return aStart.localeCompare(bStart);
+    });
+    return merged;
   }
 
   function eventTimeLabel(ev){
@@ -1873,11 +2642,32 @@
   document.getElementById("favoritesCloseBtn").addEventListener("click", closeFavoritesSheet);
   favoritesOverlay.addEventListener("click", (e) => { if(e.target === favoritesOverlay) closeFavoritesSheet(); });
 
+  document.getElementById("viewTemplatesBtn").addEventListener("click", openTemplatesSheet);
+  document.getElementById("templatesCloseBtn").addEventListener("click", closeTemplatesSheet);
+  templatesOverlay.addEventListener("click", (e) => { if(e.target === templatesOverlay) closeTemplatesSheet(); });
+
+  document.getElementById("viewHistoryBtn").addEventListener("click", openHistorySheet);
+  document.getElementById("historyCloseBtn").addEventListener("click", closeHistorySheet);
+  historyOverlay.addEventListener("click", (e) => { if(e.target === historyOverlay) closeHistorySheet(); });
+  document.getElementById("historySearchInput").addEventListener("input", (e) => renderHistoryResults(e.target.value));
+
+  document.getElementById("weekdayGoalsBtn").addEventListener("click", openWeekdayGoalsSheet);
+  document.getElementById("weekdayGoalsCloseBtn").addEventListener("click", closeWeekdayGoalsSheet);
+  document.getElementById("weekdayGoalsSaveBtn").addEventListener("click", saveWeekdayGoalsFromForm);
+  weekdayGoalsOverlay.addEventListener("click", (e) => { if(e.target === weekdayGoalsOverlay) closeWeekdayGoalsSheet(); });
+
+  document.querySelectorAll(".water-btn").forEach(btn => {
+    btn.addEventListener("click", () => addWater(num(btn.dataset.ml)));
+  });
+  document.getElementById("waterResetBtn").addEventListener("click", resetWaterToday);
+  document.getElementById("waterGoalBtn").addEventListener("click", promptWaterGoal);
+
   document.getElementById("connectCalendarBtn").addEventListener("click", openCalendarSheet);
   document.getElementById("calendarCloseBtn").addEventListener("click", closeCalendarSheet);
   document.getElementById("gcalSaveClientIdBtn").addEventListener("click", saveGcalClientIdFromForm);
   document.getElementById("gcalSignInBtn").addEventListener("click", signInGoogleCalendar);
   document.getElementById("gcalSignOutBtn").addEventListener("click", signOutGoogleCalendar);
+  document.getElementById("gcalSaveCalendarsBtn").addEventListener("click", saveCalendarSelectionFromForm);
   calendarOverlay.addEventListener("click", (e) => { if(e.target === calendarOverlay) closeCalendarSheet(); });
   document.getElementById("calendarMoreBtn").addEventListener("click", () => {
     const list = document.getElementById("calendarCardList");
@@ -1887,7 +2677,7 @@
   document.getElementById("menuBtn").addEventListener("click", openDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", (e) => { if(e.target === drawerOverlay) closeDrawer(); });
-  ["editGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "logWeightBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn"].forEach(id => {
+  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn"].forEach(id => {
     document.getElementById(id).addEventListener("click", closeDrawer);
   });
 
@@ -1911,6 +2701,19 @@
   document.querySelectorAll("#weightUnitsToggle button").forEach(btn => {
     btn.addEventListener("click", () => setWeightSheetUnit(btn.dataset.unit));
   });
+
+  document.getElementById("planWorkoutsBtn").addEventListener("click", openWorkoutPlanSheet);
+  document.getElementById("workoutCardEditBtn").addEventListener("click", openWorkoutPlanSheet);
+  document.getElementById("workoutPlanCloseBtn").addEventListener("click", closeWorkoutPlanSheet);
+  document.getElementById("workoutPlanSaveBtn").addEventListener("click", saveWorkoutPlanFromForm);
+  workoutPlanOverlay.addEventListener("click", (e) => { if(e.target === workoutPlanOverlay) closeWorkoutPlanSheet(); });
+
+  document.getElementById("workoutRecOpenBtn").addEventListener("click", openWorkoutRecSheet);
+  document.getElementById("workoutRecCloseBtn").addEventListener("click", closeWorkoutRecSheet);
+  document.getElementById("recGenerateBtn").addEventListener("click", generateWorkoutRecommendation);
+  document.getElementById("recBackBtn").addEventListener("click", backToWorkoutRecForm);
+  document.getElementById("recApplyBtn").addEventListener("click", applyWorkoutRecommendation);
+  workoutRecOverlay.addEventListener("click", (e) => { if(e.target === workoutRecOverlay) closeWorkoutRecSheet(); });
 
   document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
   document.getElementById("trendsBtn").addEventListener("click", openTrends);

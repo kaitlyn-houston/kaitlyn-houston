@@ -26,8 +26,12 @@
       <button class="icon-btn" id="drawerCloseBtn" type="button">✕</button>
     </div>
     <div class="drawer-list">
+      <div class="drawer-section-label">Nutrition</div>
       <button type="button" class="drawer-item" id="editGoalsBtn">
         <span class="drawer-item-icon">🎯</span> Edit daily goals
+      </button>
+      <button type="button" class="drawer-item" id="weekdayGoalsBtn">
+        <span class="drawer-item-icon">📆</span> Goals by day of week
       </button>
       <button type="button" class="drawer-item" id="calcMacrosBtn">
         <span class="drawer-item-icon">🧮</span> Calculate my macros
@@ -35,8 +39,19 @@
       <button type="button" class="drawer-item" id="viewFavoritesBtn">
         <span class="drawer-item-icon">★</span> Favorites
       </button>
+      <button type="button" class="drawer-item" id="viewTemplatesBtn">
+        <span class="drawer-item-icon">🍽️</span> Meal templates
+      </button>
+      <button type="button" class="drawer-item" id="viewHistoryBtn">
+        <span class="drawer-item-icon">🔎</span> Search food log
+      </button>
+
+      <div class="drawer-section-label">Fitness</div>
       <button type="button" class="drawer-item" id="logWeightBtn">
         <span class="drawer-item-icon">⚖️</span> Log weight
+      </button>
+      <button type="button" class="drawer-item" id="planWorkoutsBtn">
+        <span class="drawer-item-icon">🏋️</span> Plan workouts
       </button>
       <button type="button" class="drawer-item" id="importGarminBtn">
         <span class="drawer-item-icon">🔥</span> Import Garmin data
@@ -44,6 +59,8 @@
       <button type="button" class="drawer-item" id="viewGarminHistoryBtn">
         <span class="drawer-item-icon">📋</span> View Garmin history
       </button>
+
+      <div class="drawer-section-label">Connections &amp; Data</div>
       <button type="button" class="drawer-item" id="connectCalendarBtn">
         <span class="drawer-item-icon">📅</span> Google Calendar
       </button>
@@ -117,6 +134,32 @@
       <div class="dash-tile-num-sm mono" id="fatVal">0 / 0g</div>
       <div class="macro-bar-track"><div class="macro-bar-fill" id="fatBar" style="width:0%;background:var(--fat);"></div></div>
     </div>
+  </div>
+
+  <div class="activity-card" id="waterCard">
+    <div class="water-row">
+      <div class="activity-card-label">Water</div>
+      <button type="button" class="icon-btn" id="waterGoalBtn" title="Set daily goal">✎</button>
+    </div>
+    <div class="water-amount mono" id="waterAmountNum">0 / 2000 ml</div>
+    <div class="macro-bar-track"><div class="macro-bar-fill" id="waterBar" style="width:0%;background:var(--carbs);"></div></div>
+    <div class="water-quick-actions">
+      <button type="button" class="btn btn-secondary water-btn" data-ml="250">+250 ml</button>
+      <button type="button" class="btn btn-secondary water-btn" data-ml="500">+500 ml</button>
+      <button type="button" class="btn btn-secondary water-btn" data-ml="750">+750 ml</button>
+      <button type="button" class="btn btn-secondary water-btn" data-ml="1000">+1 L</button>
+      <button type="button" class="icon-btn danger" id="waterResetBtn" title="Reset today">✕</button>
+    </div>
+  </div>
+
+  <div class="activity-card" id="workoutCard">
+    <div class="water-row">
+      <div class="activity-card-label">This week's workouts</div>
+      <button type="button" class="icon-btn" id="workoutCardEditBtn" title="Plan workouts">✎</button>
+    </div>
+    <div id="workoutWeekStrip" class="workout-week-strip"></div>
+    <div class="workout-today-label" id="workoutTodayLabel"></div>
+    <div class="workout-best-time" id="workoutBestTime"></div>
   </div>
 
   <div class="activity-card" id="activityCard" style="display:none;">
@@ -248,6 +291,20 @@
   </div>
 </div>
 
+<!-- Weekday Goals Sheet -->
+<div class="sheet-overlay" id="weekdayGoalsOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Goals by day of week</h3>
+    <div class="quiz-note">Turn on a custom target for specific days — like lighter on rest days or higher on training days. Days left off use your default goals.</div>
+    <div id="weekdayGoalsList"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="weekdayGoalsCloseBtn">Close</button>
+      <button class="btn btn-primary" id="weekdayGoalsSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Macro Calculator Quiz Sheet -->
 <div class="sheet-overlay" id="calcOverlay">
   <div class="sheet">
@@ -374,6 +431,36 @@
   </div>
 </div>
 
+<!-- Meal Templates Sheet -->
+<div class="sheet-overlay" id="templatesOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Meal templates</h3>
+    <div class="quiz-note">Save a meal you eat often, then log the whole thing in one tap. Create one from the 💾 button on any meal you've logged today.</div>
+    <div id="templatesList" class="garmin-history-list"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="templatesCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Food Log History / Search Sheet -->
+<div class="sheet-overlay" id="historyOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Search food log</h3>
+    <div class="field">
+      <label for="historySearchInput">Food name</label>
+      <input type="text" id="historySearchInput" placeholder="e.g. chicken">
+    </div>
+    <div id="historySummary" class="quiz-note">Type a food name to search your full log.</div>
+    <div id="historyResults" class="garmin-history-list"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="historyCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Garmin History Sheet -->
 <div class="sheet-overlay" id="garminHistoryOverlay">
   <div class="sheet">
@@ -439,23 +526,104 @@
   </div>
 </div>
 
+<!-- Workout Plan Sheet -->
+<div class="sheet-overlay" id="workoutPlanOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Plan workouts this week</h3>
+    <div class="quiz-note">Set a workout for each day and check it off as you go. Resets automatically next week.</div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="workoutRecOpenBtn">✨ Suggest a plan for me</button>
+    </div>
+    <div id="workoutPlanList"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="workoutPlanCloseBtn">Close</button>
+      <button class="btn btn-primary" id="workoutPlanSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Workout Recommendations Sheet -->
+<div class="sheet-overlay" id="workoutRecOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Workout recommendations</h3>
+    <div id="workoutRecForm">
+      <div class="quiz-note">Rule-of-thumb suggestions based on common training splits — not personalized coaching. Adjust to how your body responds.</div>
+      <div class="quiz-note">If Google Calendar is connected, days that already have a workout on your calendar (run, ride, gym, yoga, etc.) are kept as-is and count toward your total — new suggestions fill the remaining days with the fewest scheduled hours.</div>
+      <div class="field">
+        <label for="recGoalSelect">Fitness goal</label>
+        <select id="recGoalSelect">
+          <option value="fatloss">Lose weight / fat loss</option>
+          <option value="muscle">Build muscle</option>
+          <option value="endurance">Improve endurance</option>
+          <option value="general" selected>General fitness</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="recDaysSelect">Workout days this week</label>
+        <select id="recDaysSelect">
+          <option value="3">3 days</option>
+          <option value="4" selected>4 days</option>
+          <option value="5">5 days</option>
+          <option value="6">6 days</option>
+        </select>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-primary" id="recGenerateBtn">Generate plan</button>
+      </div>
+    </div>
+    <div id="workoutRecResults" style="display:none;">
+      <div id="workoutRecCalNote" class="quiz-note" style="display:none;">Days marked "from calendar" already had a workout event and were left untouched. Remaining days were placed on your least busy days this week (all-day events estimate at 2 hours since they have no time range).</div>
+      <div id="workoutRecList" class="garmin-history-list"></div>
+      <div class="quiz-note">Applying will replace this week's workout plan with the suggestions above — you can still edit any day afterward.</div>
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="recBackBtn">Back</button>
+        <button class="btn btn-primary" id="recApplyBtn">Apply to this week</button>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="workoutRecCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Google Calendar Sheet -->
 <div class="sheet-overlay" id="calendarOverlay">
   <div class="sheet">
     <div class="sheet-handle"></div>
     <h3>Google Calendar</h3>
-    <div class="field">
-      <label for="gcalClientIdInput">OAuth Client ID</label>
-      <input type="text" class="mono-input" id="gcalClientIdInput" placeholder="xxxxx.apps.googleusercontent.com">
-    </div>
-    <div class="quiz-note">From your own Google Cloud project (OAuth client, type "Web application"). Stored only in this browser.</div>
     <div class="quiz-note" id="gcalStatusNote">Not connected.</div>
-    <div class="sheet-actions">
-      <button class="btn btn-secondary" id="gcalSaveClientIdBtn">Save Client ID</button>
-      <button class="btn btn-primary" id="gcalSignInBtn">Sign in</button>
+
+    <div id="gcalConnectSection">
+      <div class="field">
+        <label for="gcalClientIdInput">OAuth Client ID</label>
+        <input type="text" class="mono-input" id="gcalClientIdInput" placeholder="xxxxx.apps.googleusercontent.com">
+      </div>
+      <div class="quiz-note">From your own Google Cloud project (OAuth client, type "Web application"). Stored only in this browser.</div>
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="gcalSaveClientIdBtn">Save Client ID</button>
+        <button class="btn btn-primary" id="gcalSignInBtn">Sign in</button>
+      </div>
     </div>
+
+    <div id="gcalManageSection" style="display:none;">
+      <div class="field">
+        <label>Calendars to include</label>
+        <div id="gcalCalendarList" class="gcal-calendar-list"></div>
+        <div class="quiz-note" style="margin-top:8px;">🏋️ = treat every event on that calendar as a workout, skipping keyword matching entirely. Good for a dedicated training calendar like Runna.</div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-primary" id="gcalSaveCalendarsBtn">Save calendar selection</button>
+      </div>
+      <hr class="favs-divider">
+      <div class="sheet-actions">
+        <button class="btn btn-secondary" id="gcalSignOutBtn">Disconnect</button>
+      </div>
+    </div>
+
+    <hr class="favs-divider">
     <div class="sheet-actions">
-      <button class="btn btn-secondary" id="gcalSignOutBtn">Disconnect</button>
       <button class="btn btn-secondary" id="calendarCloseBtn">Close</button>
     </div>
   </div>
