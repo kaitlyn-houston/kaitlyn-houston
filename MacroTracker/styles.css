@@ -280,6 +280,27 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .workout-best-time{font-size:12px;color:var(--terracotta);margin-top:4px;}
 .workout-done-btn{margin-top:10px;width:100%;padding:10px;font-size:13px;}
 .workout-done-btn.is-done{background:var(--good);border-color:var(--good);color:#fff;}
+.gym-log-open-btn{margin-top:8px;width:100%;padding:10px;font-size:13px;}
+.gym-summary{margin-top:10px;font-size:12px;color:var(--text-dim);}
+.gym-summary-row{margin-top:4px;}
+.gym-summary-row strong{color:var(--text);}
+
+.gym-exercise-block{background:var(--bg-inset);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.gym-exercise-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.gym-exercise-name{font-size:14px;font-weight:600;}
+.gym-set-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;color:var(--text-dim);padding:4px 0;font-family:'IBM Plex Mono',monospace;
+}
+.gym-set-row .icon-btn{width:22px;height:22px;font-size:12px;}
+.gym-add-set-row{display:flex;gap:8px;margin-top:6px;align-items:center;}
+.gym-add-set-row input{
+  flex:1;min-width:0;padding:8px 10px;font-size:12px;
+  background:var(--bg-raised);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;font-family:'IBM Plex Mono',monospace;
+}
+.gym-add-set-row input:focus{outline:none;border-color:var(--amber);}
+.gym-add-set-row .btn{flex:none;padding:8px 12px;font-size:12px;}
 
 .day-notes-input{
   width:100%;

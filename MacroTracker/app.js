@@ -22,6 +22,7 @@
   const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
   const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
+  const GYM_LOG_KEY = "macroTracker.gymLog.v1";
   const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const WORKOUT_TEMPLATES = {
     fatloss: [
@@ -283,6 +284,15 @@
   function saveDayNotes(map){
     localStorage.setItem(DAY_NOTES_KEY, JSON.stringify(map));
   }
+  function loadGymLog(){
+    try{
+      const raw = localStorage.getItem(GYM_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveGymLog(map){
+    localStorage.setItem(GYM_LOG_KEY, JSON.stringify(map));
+  }
   function loadReminders(){
     try{
       const raw = localStorage.getItem(REMINDERS_KEY);
@@ -508,6 +518,7 @@
     renderCalendarCard();
     renderMicroCard(totals);
     renderNotesCard();
+    renderGymLogSummary();
     renderInsight(totals, goals);
     scheduleCloudSync();
     checkReminders();
@@ -627,6 +638,113 @@
       delete notes[currentDate];
     }
     saveDayNotes(notes);
+  }
+
+  // ---------- gym log ----------
+  const gymLogOverlay = document.getElementById("gymLogOverlay");
+
+  function openGymLogSheet(){
+    renderGymLogSheet();
+    gymLogOverlay.classList.add("open");
+  }
+  function closeGymLogSheet(){
+    gymLogOverlay.classList.remove("open");
+  }
+
+  function addGymExercise(name){
+    const trimmed = name.trim();
+    if(!trimmed) return;
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    list.push({ id: uid(), name: trimmed, sets: [] });
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function addGymSet(exId, reps, weight){
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    const ex = list.find(x => x.id === exId);
+    if(!ex) return;
+    ex.sets.push({ reps, weight });
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function removeGymSet(exId, setIdx){
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    const ex = list.find(x => x.id === exId);
+    if(!ex) return;
+    ex.sets.splice(setIdx, 1);
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function removeGymExercise(exId){
+    const log = loadGymLog();
+    let list = log[currentDate] || [];
+    list = list.filter(x => x.id !== exId);
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function renderGymLogSheet(){
+    document.getElementById("gymLogTitle").textContent = "Log workout — " + formatDateLabel(currentDate);
+    const unit = loadWeightUnit();
+    const list = loadGymLog()[currentDate] || [];
+    const container = document.getElementById("gymLogExerciseList");
+    if(list.length === 0){
+      container.innerHTML = '<div class="garmin-history-empty">No exercises logged yet — add one below.</div>';
+      return;
+    }
+    container.innerHTML = list.map(ex => `
+      <div class="gym-exercise-block">
+        <div class="gym-exercise-head">
+          <div class="gym-exercise-name">${escapeHtml(ex.name)}</div>
+          <button type="button" class="icon-btn danger gym-remove-exercise" data-ex-id="${ex.id}">✕</button>
+        </div>
+        ${ex.sets.length === 0
+          ? '<div class="gym-set-row">No sets yet</div>'
+          : ex.sets.map((s, i) => `
+            <div class="gym-set-row">
+              <span>Set ${i + 1}: ${s.reps} × ${s.weight}${unit}</span>
+              <button type="button" class="icon-btn danger gym-remove-set" data-ex-id="${ex.id}" data-set-idx="${i}">✕</button>
+            </div>
+          `).join("")}
+        <div class="gym-add-set-row">
+          <input type="number" inputmode="decimal" class="mono-input gym-set-reps" placeholder="Reps">
+          <input type="number" inputmode="decimal" class="mono-input gym-set-weight" placeholder="${unit}">
+          <button type="button" class="btn btn-secondary gym-add-set" data-ex-id="${ex.id}">+ Set</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function renderGymLogSummary(){
+    const list = loadGymLog()[currentDate] || [];
+    const el = document.getElementById("gymLogSummary");
+    if(list.length === 0){
+      el.style.display = "none";
+      el.innerHTML = "";
+      return;
+    }
+    const unit = loadWeightUnit();
+    el.style.display = "block";
+    el.innerHTML = list.map(ex => {
+      const setsText = ex.sets.length > 0
+        ? ex.sets.map(s => s.reps + "×" + s.weight + unit).join(", ")
+        : "no sets logged";
+      return '<div class="gym-summary-row"><strong>' + escapeHtml(ex.name) + '</strong>: ' + escapeHtml(setsText) + '</div>';
+    }).join("");
   }
 
   async function renderWorkoutCard(){
@@ -2100,7 +2218,8 @@
     weekdayGoals: WEEKDAY_GOALS_KEY,
     workoutPlan: WORKOUT_PLAN_KEY,
     checkinLog: CHECKIN_LOG_KEY,
-    dayNotes: DAY_NOTES_KEY
+    dayNotes: DAY_NOTES_KEY,
+    gymLog: GYM_LOG_KEY
   };
 
   function openBackupSheet(){
@@ -3423,6 +3542,36 @@
   document.getElementById("planWorkoutsBtn").addEventListener("click", openWorkoutPlanSheet);
   document.getElementById("workoutCardEditBtn").addEventListener("click", openWorkoutPlanSheet);
   document.getElementById("dayNotesInput").addEventListener("input", saveDayNote);
+
+  document.getElementById("gymLogOpenBtn").addEventListener("click", openGymLogSheet);
+  document.getElementById("gymLogCloseBtn").addEventListener("click", closeGymLogSheet);
+  gymLogOverlay.addEventListener("click", (e) => { if(e.target === gymLogOverlay) closeGymLogSheet(); });
+
+  document.getElementById("gymLogAddExerciseBtn").addEventListener("click", () => {
+    const input = document.getElementById("gymLogNewExercise");
+    addGymExercise(input.value);
+    input.value = "";
+  });
+  document.getElementById("gymLogNewExercise").addEventListener("keydown", (e) => {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    addGymExercise(e.target.value);
+    e.target.value = "";
+  });
+
+  document.getElementById("gymLogExerciseList").addEventListener("click", (e) => {
+    const removeExBtn = e.target.closest(".gym-remove-exercise");
+    if(removeExBtn){ removeGymExercise(removeExBtn.dataset.exId); return; }
+    const removeSetBtn = e.target.closest(".gym-remove-set");
+    if(removeSetBtn){ removeGymSet(removeSetBtn.dataset.exId, parseInt(removeSetBtn.dataset.setIdx, 10)); return; }
+    const addSetBtn = e.target.closest(".gym-add-set");
+    if(addSetBtn){
+      const block = addSetBtn.closest(".gym-exercise-block");
+      const reps = num(block.querySelector(".gym-set-reps").value);
+      const weight = num(block.querySelector(".gym-set-weight").value);
+      if(reps > 0){ addGymSet(addSetBtn.dataset.exId, reps, weight); }
+    }
+  });
   document.getElementById("workoutDoneBtn").addEventListener("click", toggleWorkoutDone);
   document.getElementById("workoutPlanCloseBtn").addEventListener("click", closeWorkoutPlanSheet);
   document.getElementById("workoutPlanSaveBtn").addEventListener("click", saveWorkoutPlanFromForm);
