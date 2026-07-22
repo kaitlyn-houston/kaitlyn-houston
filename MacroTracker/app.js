@@ -671,34 +671,61 @@
   }
 
   // ---------- weekly to-do list ----------
+  function dayHasWorkout(plan, dateStr){
+    const entry = plan[dateStr];
+    return entry && entry.label && !NON_WORKOUT_LABELS.includes(entry.label.trim().toLowerCase());
+  }
+
   function renderTodoCard(){
     const todos = loadTodos();
+    const plan = loadWorkoutPlan();
     const dates = currentWeekDates(currentDate);
 
     const strip = document.getElementById("todoWeekStrip");
     strip.innerHTML = "";
     dates.forEach((d, idx) => {
       const list = todos[d] || [];
+      const hasWorkout = dayHasWorkout(plan, d);
+      const totalItems = list.length + (hasWorkout ? 1 : 0);
+      const allDone = totalItems > 0 &&
+        list.every(t => t.done) && (!hasWorkout || plan[d].done);
       let cls = "workout-day-pill";
       if(d === currentDate) cls += " today";
-      if(list.length > 0) cls += " planned";
-      if(list.length > 0 && list.every(t => t.done)) cls += " done";
+      if(totalItems > 0) cls += " planned";
+      if(allDone) cls += " done";
       const pill = document.createElement("div");
       pill.className = cls;
       pill.textContent = WORKOUT_DAY_ABBRS[idx];
-      pill.title = list.length > 0
-        ? list.length + " to-do" + (list.length === 1 ? "" : "s") + (list.every(t => t.done) ? " (all done)" : "")
+      pill.title = totalItems > 0
+        ? totalItems + " item" + (totalItems === 1 ? "" : "s") + (allDone ? " (all done)" : "")
         : "Nothing planned";
       strip.appendChild(pill);
     });
 
     const list = todos[currentDate] || [];
     const container = document.getElementById("todoList");
-    if(list.length === 0){
+    container.innerHTML = "";
+
+    const hasWorkout = dayHasWorkout(plan, currentDate);
+    if(hasWorkout){
+      const entry = plan[currentDate];
+      const row = document.createElement("div");
+      row.className = "todo-row" + (entry.done ? " done" : "");
+      row.innerHTML = `
+        <label class="todo-check">
+          <input type="checkbox" class="todo-check-input">
+          <span class="todo-text">🏋️ ${escapeHtml(entry.label)}</span>
+        </label>
+      `;
+      row.querySelector(".todo-check-input").checked = !!entry.done;
+      row.querySelector(".todo-check-input").addEventListener("change", toggleWorkoutDone);
+      container.appendChild(row);
+    }
+
+    if(list.length === 0 && !hasWorkout){
       container.innerHTML = '<div class="garmin-history-empty">Nothing planned for ' + formatDateLabel(currentDate) + '.</div>';
       return;
     }
-    container.innerHTML = "";
     list.forEach(t => {
       const row = document.createElement("div");
       row.className = "todo-row" + (t.done ? " done" : "");
@@ -1019,6 +1046,7 @@
     entry.done = !entry.done;
     saveWorkoutPlan(plan);
     renderWorkoutCard();
+    renderTodoCard();
   }
 
   // ---------- workout plan sheet ----------
@@ -3132,12 +3160,14 @@
       return;
     }
     const dateForFetch = currentDate;
-    const events = await fetchCalendarEventsForDate(dateForFetch);
+    const rawEvents = await fetchCalendarEventsForDate(dateForFetch);
     if(dateForFetch !== currentDate) return; // user navigated away before this resolved
-    if(events === null){
+    if(rawEvents === null){
       card.style.display = "none";
       return;
     }
+    // Workouts are tracked via the workout plan / to-do list instead, so keep them out of the schedule.
+    const events = rawEvents.filter(ev => !isWorkoutEvent(ev));
 
     document.getElementById("calendarCardLabel").textContent =
       formatDateLabel(currentDate) + "'s schedule";
