@@ -17,6 +17,10 @@
   const THEME_KEY = "macroTracker.theme.v1";
   const WATER_KEY = "macroTracker.water.v1";
   const WATER_GOAL_KEY = "macroTracker.waterGoal.v1";
+  const CAFFEINE_KEY = "macroTracker.caffeine.v1";
+  const CAFFEINE_GOAL_KEY = "macroTracker.caffeineGoal.v1";
+  const ALCOHOL_KEY = "macroTracker.alcohol.v1";
+  const ALCOHOL_GOAL_KEY = "macroTracker.alcoholGoal.v1";
   const TEMPLATES_KEY = "macroTracker.mealTemplates.v1";
   const WEEKDAY_GOALS_KEY = "macroTracker.weekdayGoals.v1";
   const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -238,6 +242,38 @@
   }
   function saveWaterGoal(ml){
     localStorage.setItem(WATER_GOAL_KEY, String(ml));
+  }
+  function loadCaffeine(){
+    try{
+      const raw = localStorage.getItem(CAFFEINE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveCaffeine(map){
+    localStorage.setItem(CAFFEINE_KEY, JSON.stringify(map));
+  }
+  function loadCaffeineGoal(){
+    const raw = num(localStorage.getItem(CAFFEINE_GOAL_KEY));
+    return raw > 0 ? raw : 400;
+  }
+  function saveCaffeineGoal(mg){
+    localStorage.setItem(CAFFEINE_GOAL_KEY, String(mg));
+  }
+  function loadAlcohol(){
+    try{
+      const raw = localStorage.getItem(ALCOHOL_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveAlcohol(map){
+    localStorage.setItem(ALCOHOL_KEY, JSON.stringify(map));
+  }
+  function loadAlcoholGoal(){
+    const raw = num(localStorage.getItem(ALCOHOL_GOAL_KEY));
+    return raw > 0 ? raw : 14;
+  }
+  function saveAlcoholGoal(units){
+    localStorage.setItem(ALCOHOL_GOAL_KEY, String(units));
   }
   function loadTemplates(){
     try{
@@ -489,6 +525,8 @@
     renderBurnedCard(totals);
     renderWeightCard();
     renderWaterCard();
+    renderCaffeineCard();
+    renderAlcoholCard();
     renderWorkoutCard();
     renderActivityCard();
     renderCalendarCard();
@@ -541,6 +579,81 @@
     if(val > 0){
       saveWaterGoal(Math.round(val));
       renderWaterCard();
+    }
+  }
+
+  function renderCaffeineCard(){
+    const mg = loadCaffeine()[currentDate] || 0;
+    const goal = loadCaffeineGoal();
+    document.getElementById("caffeineAmountNum").textContent = mg + " / " + goal + " mg";
+    const pct = goal > 0 ? Math.min((mg / goal) * 100, 100) : 0;
+    const bar = document.getElementById("caffeineBar");
+    bar.style.width = pct + "%";
+    bar.style.background = mg > goal ? "var(--danger)" : "var(--fat)";
+  }
+
+  function addCaffeine(deltaMg){
+    const map = loadCaffeine();
+    const cur = map[currentDate] || 0;
+    map[currentDate] = Math.max(cur + deltaMg, 0);
+    saveCaffeine(map);
+    renderCaffeineCard();
+  }
+
+  function resetCaffeineToday(){
+    if(!confirm("Reset today's caffeine to 0?")) return;
+    const map = loadCaffeine();
+    map[currentDate] = 0;
+    saveCaffeine(map);
+    renderCaffeineCard();
+  }
+
+  function promptCaffeineGoal(){
+    const input = prompt("Daily caffeine limit (mg):", String(loadCaffeineGoal()));
+    if(input == null) return;
+    const val = num(input);
+    if(val > 0){
+      saveCaffeineGoal(Math.round(val));
+      renderCaffeineCard();
+    }
+  }
+
+  function renderAlcoholCard(){
+    const map = loadAlcohol();
+    const units = map[currentDate] || 0;
+    const goal = loadAlcoholGoal();
+    const weekTotal = currentWeekDates(currentDate).reduce((sum, d) => sum + (map[d] || 0), 0);
+    document.getElementById("alcoholAmountNum").textContent = units + " units today";
+    document.getElementById("alcoholWeekNum").textContent = weekTotal + " / " + goal + " units this week";
+    const pct = goal > 0 ? Math.min((weekTotal / goal) * 100, 100) : 0;
+    const bar = document.getElementById("alcoholBar");
+    bar.style.width = pct + "%";
+    bar.style.background = weekTotal > goal ? "var(--danger)" : "var(--protein)";
+  }
+
+  function addAlcohol(deltaUnits){
+    const map = loadAlcohol();
+    const cur = map[currentDate] || 0;
+    map[currentDate] = Math.max(cur + deltaUnits, 0);
+    saveAlcohol(map);
+    renderAlcoholCard();
+  }
+
+  function resetAlcoholToday(){
+    if(!confirm("Reset today's alcohol to 0?")) return;
+    const map = loadAlcohol();
+    map[currentDate] = 0;
+    saveAlcohol(map);
+    renderAlcoholCard();
+  }
+
+  function promptAlcoholGoal(){
+    const input = prompt("Weekly alcohol limit (units):", String(loadAlcoholGoal()));
+    if(input == null) return;
+    const val = num(input);
+    if(val > 0){
+      saveAlcoholGoal(Math.round(val));
+      renderAlcoholCard();
     }
   }
 
@@ -2042,6 +2155,10 @@
     weightUnit: WEIGHT_UNIT_KEY,
     water: WATER_KEY,
     waterGoal: WATER_GOAL_KEY,
+    caffeine: CAFFEINE_KEY,
+    caffeineGoal: CAFFEINE_GOAL_KEY,
+    alcohol: ALCOHOL_KEY,
+    alcoholGoal: ALCOHOL_GOAL_KEY,
     templates: TEMPLATES_KEY,
     weekdayGoals: WEEKDAY_GOALS_KEY,
     workoutPlan: WORKOUT_PLAN_KEY,
@@ -3307,6 +3424,18 @@
   });
   document.getElementById("waterResetBtn").addEventListener("click", resetWaterToday);
   document.getElementById("waterGoalBtn").addEventListener("click", promptWaterGoal);
+
+  document.querySelectorAll(".caffeine-btn").forEach(btn => {
+    btn.addEventListener("click", () => addCaffeine(num(btn.dataset.mg)));
+  });
+  document.getElementById("caffeineResetBtn").addEventListener("click", resetCaffeineToday);
+  document.getElementById("caffeineGoalBtn").addEventListener("click", promptCaffeineGoal);
+
+  document.querySelectorAll(".alcohol-btn").forEach(btn => {
+    btn.addEventListener("click", () => addAlcohol(num(btn.dataset.units)));
+  });
+  document.getElementById("alcoholResetBtn").addEventListener("click", resetAlcoholToday);
+  document.getElementById("alcoholGoalBtn").addEventListener("click", promptAlcoholGoal);
 
   document.getElementById("connectCalendarBtn").addEventListener("click", openCalendarSheet);
   document.getElementById("calendarCloseBtn").addEventListener("click", closeCalendarSheet);

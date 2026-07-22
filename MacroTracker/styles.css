@@ -265,7 +265,9 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .water-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .water-amount{font-size:18px;font-weight:700;margin-bottom:8px;}
 .water-quick-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;}
-.water-quick-actions .water-btn{flex:none;padding:8px 14px;font-size:12px;}
+.water-quick-actions .water-btn,
+.water-quick-actions .caffeine-btn,
+.water-quick-actions .alcohol-btn{flex:none;padding:8px 14px;font-size:12px;}
 
 .workout-week-strip{display:flex;gap:6px;margin-bottom:10px;}
 .workout-day-pill{

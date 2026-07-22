@@ -188,6 +188,38 @@
     </div>
   </div>
 
+  <div class="activity-card" id="caffeineCard">
+    <div class="water-row">
+      <div class="activity-card-label">Caffeine</div>
+      <button type="button" class="icon-btn" id="caffeineGoalBtn" title="Set daily limit">✎</button>
+    </div>
+    <div class="water-amount mono" id="caffeineAmountNum">0 / 400 mg</div>
+    <div class="macro-bar-track"><div class="macro-bar-fill" id="caffeineBar" style="width:0%;background:var(--fat);"></div></div>
+    <div class="water-quick-actions">
+      <button type="button" class="btn btn-secondary caffeine-btn" data-mg="95">Coffee +95mg</button>
+      <button type="button" class="btn btn-secondary caffeine-btn" data-mg="47">Tea +47mg</button>
+      <button type="button" class="btn btn-secondary caffeine-btn" data-mg="80">Energy +80mg</button>
+      <button type="button" class="btn btn-secondary caffeine-btn" data-mg="35">Soda +35mg</button>
+      <button type="button" class="icon-btn danger" id="caffeineResetBtn" title="Reset today">✕</button>
+    </div>
+  </div>
+
+  <div class="activity-card" id="alcoholCard">
+    <div class="water-row">
+      <div class="activity-card-label">Alcohol</div>
+      <button type="button" class="icon-btn" id="alcoholGoalBtn" title="Set weekly limit">✎</button>
+    </div>
+    <div class="water-amount mono" id="alcoholAmountNum">0 units today</div>
+    <div class="workout-best-time" id="alcoholWeekNum">0 / 14 units this week</div>
+    <div class="macro-bar-track"><div class="macro-bar-fill" id="alcoholBar" style="width:0%;background:var(--protein);"></div></div>
+    <div class="water-quick-actions">
+      <button type="button" class="btn btn-secondary alcohol-btn" data-units="1">Spirit +1u</button>
+      <button type="button" class="btn btn-secondary alcohol-btn" data-units="2">Beer +2u</button>
+      <button type="button" class="btn btn-secondary alcohol-btn" data-units="2">Wine +2u</button>
+      <button type="button" class="icon-btn danger" id="alcoholResetBtn" title="Reset today">✕</button>
+    </div>
+  </div>
+
   <div class="activity-card" id="workoutCard">
     <div class="water-row">
       <div class="activity-card-label">This week's workouts</div>
