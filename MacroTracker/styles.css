@@ -44,7 +44,7 @@ h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;}
 .mono{font-family:'IBM Plex Mono',monospace;}
 
 header{
-  padding:10px 8px 8px 12px;
+  padding:calc(10px + env(safe-area-inset-top)) 8px 8px 12px;
   border-bottom:1px solid var(--border);
 }
 header .header-top{
