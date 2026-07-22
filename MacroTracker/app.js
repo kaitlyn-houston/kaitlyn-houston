@@ -78,6 +78,7 @@
   const SODIUM_LIMIT_MG = 2300;
   const REMINDERS_KEY = "macroTracker.reminders.v1";
   const NOTIFIED_LOG_KEY = "macroTracker.notifiedLog.v1";
+  const CHECKIN_LOG_KEY = "macroTracker.checkinLog.v1";
   const DEFAULT_REMINDERS = {
     waterEnabled: false, waterTime: "18:00",
     mealEnabled: false, mealTime: "20:00",
@@ -864,27 +865,84 @@
       { value: "none", label: "Not really" }, { value: "some", label: "A little" }, { value: "very", label: "Very" }
     ]}
   ];
+  function loadCheckinLog(){
+    try{
+      const raw = localStorage.getItem(CHECKIN_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveCheckinLog(log){
+    const dates = Object.keys(log).sort();
+    while(dates.length > 30){ delete log[dates.shift()]; }
+    localStorage.setItem(CHECKIN_LOG_KEY, JSON.stringify(log));
+  }
+  function seededPick(arr, seed){
+    let hash = 0;
+    for(let i = 0; i < seed.length; i++){ hash = (hash * 31 + seed.charCodeAt(i)) >>> 0; }
+    return arr[hash % arr.length];
+  }
+
   let checkinStep = 0;
   let checkinAnswers = {};
+  const savedCheckinToday = loadCheckinLog()[todayStr()];
+  if(savedCheckinToday){
+    checkinAnswers = {
+      energy: savedCheckinToday.energy, sleep: savedCheckinToday.sleep,
+      mood: savedCheckinToday.mood, hunger: savedCheckinToday.hunger
+    };
+    checkinStep = CHECKIN_QUESTIONS.length;
+  }
 
   function generateCheckinSuggestions(answers){
     const { energy, sleep, mood, hunger } = answers;
     const score = CHECKIN_LEVEL_SCORE[energy] + CHECKIN_LEVEL_SCORE[sleep] + CHECKIN_LEVEL_SCORE[mood];
-    let summary;
-    if(score <= 2){
-      summary = "Today looks like a recovery day — lean on rest, hydration, and easy nutrition rather than pushing hard.";
-    } else if(score <= 4){
-      summary = "You're doing okay. A few deliberate choices — water, a real meal, a short walk — will compound today.";
-    } else {
-      summary = "You're in a good place today — a solid day to tackle a harder workout or get ahead on meal prep if you've got the time.";
+    const today = todayStr();
+    const seed = today;
+
+    const log = loadCheckinLog();
+    const prev = log[addDays(today, -1)];
+    let trendNote = "";
+    if(prev && prev.energy === "low" && energy === "low"){
+      trendNote = " That's two days of low energy in a row — worth an early night, or if it keeps up, worth looking at iron/B12-rich food.";
+    } else if(prev && prev.mood === "stressed" && mood === "stressed"){
+      trendNote = " Stress two days running now — worth carving out even 10 minutes today that's just for you.";
+    } else if(prev && prev.sleep === "poor" && sleep === "poor"){
+      trendNote = " Second rough night in a row — worth protecting tonight's wind-down more than usual.";
     }
+
+    const summaryPool = score <= 2
+      ? [
+          "Today looks like a recovery day — lean on rest, hydration, and easy nutrition rather than pushing hard.",
+          "Sounds like a low-key day is in order — prioritise rest and simple, easy meals over anything demanding."
+        ]
+      : score <= 4
+      ? [
+          "You're doing okay. A few deliberate choices — water, a real meal, a short walk — will compound today.",
+          "Middling day, nothing alarming — small consistent choices today will do more than one big effort."
+        ]
+      : [
+          "You're in a good place today — a solid day to tackle a harder workout or get ahead on meal prep if you've got the time.",
+          "Good conditions across the board — a great day to push a bit harder if that's on your plan."
+        ];
+    const summary = seededPick(summaryPool, seed + "summary") + trendNote;
+
+    const goals = getGoalsForDate(today);
+    const totals = totalsForEntries(entriesForDate(today));
+    const calRemaining = Math.round((goals.calories || 0) - totals.calories);
+    const waterMl = loadWater()[today] || 0;
+    const waterGoal = loadWaterGoal();
+    const plan = loadWorkoutPlan()[today];
+    const hasPlannedWorkout = plan && plan.label && !NON_WORKOUT_LABELS.includes(plan.label.trim().toLowerCase());
 
     const foodTips = [];
     const drinkTips = [];
     const exerciseTips = [];
 
     if(energy === "low"){
-      foodTips.push("Complex carbs + protein — oats, eggs, or a banana with nut butter — to avoid a sugar-crash cycle.");
+      foodTips.push(seededPick([
+        "Complex carbs + protein — oats, eggs, or a banana with nut butter — to avoid a sugar-crash cycle.",
+        "Go for slow-release energy — porridge or wholegrain toast with eggs — rather than anything sugary that'll dip again."
+      ], seed + "energyfood"));
       drinkTips.push("Water first — low energy is often mild dehydration in disguise.");
       exerciseTips.push("Skip anything intense; a 10-15 min walk usually helps more than pushing through a hard session.");
     }
@@ -895,14 +953,40 @@
     }
     if(mood === "stressed"){
       foodTips.push("Magnesium-rich foods — leafy greens, nuts, dark chocolate — are linked to lower stress reactivity.");
-      drinkTips.push("Herbal tea (chamomile, peppermint) over more caffeine, which can amplify anxiety.");
+      drinkTips.push(seededPick([
+        "Herbal tea (chamomile, peppermint) over more caffeine, which can amplify anxiety.",
+        "Skip extra caffeine today — it tends to sharpen stress rather than ease it."
+      ], seed + "moodddrink"));
       exerciseTips.push("A steady walk or stretching session tends to lower cortisol better than high-intensity work right now.");
     }
     if(hunger === "very"){
-      foodTips.push("You're genuinely hungry — have a real balanced meal (protein + complex carb + veg) rather than grazing.");
+      if(calRemaining >= 300){
+        foodTips.push("You're genuinely hungry and have ~" + calRemaining + " kcal left today — good time for a real balanced meal (protein + complex carb + veg).");
+      } else if(calRemaining > 0){
+        foodTips.push("You're hungry but only ~" + calRemaining + " kcal left in today's goal — go for something high-volume and low-cal (veg, broth, popcorn) to take the edge off.");
+      } else {
+        foodTips.push("You're hungry but already at today's calorie goal — try water or a low-cal option first before deciding it's genuine hunger.");
+      }
     }
     if(energy === "high" && sleep !== "poor" && mood !== "stressed"){
       exerciseTips.push("Good conditions for a harder session today if one's on your plan.");
+    }
+
+    if(hasPlannedWorkout){
+      if(plan.done){
+        exerciseTips.push('Already logged today\'s "' + plan.label + '" — nothing more needed on that front today.');
+      } else {
+        const advice = (energy === "low" || sleep === "poor")
+          ? "worth scaling it back if it's demanding"
+          : "conditions look fine to go ahead with it";
+        exerciseTips.push('You\'ve got "' + plan.label + '" planned today — ' + advice + '.');
+      }
+    }
+
+    if(waterMl < waterGoal * 0.5){
+      drinkTips.push("Only " + waterMl + " ml logged so far against a " + waterGoal + " ml goal — worth catching up.");
+    } else if(waterMl >= waterGoal){
+      drinkTips.push("Already hit today's water goal — nice.");
     }
 
     if(foodTips.length === 0) foodTips.push("Nothing specific stands out — eat to your usual goals today.");
@@ -951,6 +1035,11 @@
         chip.addEventListener("click", () => {
           checkinAnswers[q.key] = o.value;
           checkinStep++;
+          if(checkinStep === CHECKIN_QUESTIONS.length){
+            const log = loadCheckinLog();
+            log[todayStr()] = { ...checkinAnswers, ts: Date.now() };
+            saveCheckinLog(log);
+          }
           renderCheckinChat();
         });
         chips.appendChild(chip);
@@ -976,6 +1065,9 @@
       restartChip.addEventListener("click", () => {
         checkinStep = 0;
         checkinAnswers = {};
+        const log = loadCheckinLog();
+        delete log[todayStr()];
+        saveCheckinLog(log);
         renderCheckinChat();
       });
       chips.appendChild(restartChip);
@@ -1952,7 +2044,8 @@
     waterGoal: WATER_GOAL_KEY,
     templates: TEMPLATES_KEY,
     weekdayGoals: WEEKDAY_GOALS_KEY,
-    workoutPlan: WORKOUT_PLAN_KEY
+    workoutPlan: WORKOUT_PLAN_KEY,
+    checkinLog: CHECKIN_LOG_KEY
   };
 
   function openBackupSheet(){
