@@ -622,6 +622,16 @@
     bestTimeEl.textContent = "";
     const hasWorkoutPlanned = viewedEntry && viewedEntry.label &&
       !NON_WORKOUT_LABELS.includes(viewedEntry.label.trim().toLowerCase());
+
+    const doneBtn = document.getElementById("workoutDoneBtn");
+    if(hasWorkoutPlanned){
+      doneBtn.style.display = "block";
+      doneBtn.classList.toggle("is-done", !!viewedEntry.done);
+      doneBtn.textContent = viewedEntry.done ? "✓ Completed" : "Mark as done";
+    } else {
+      doneBtn.style.display = "none";
+    }
+
     if(!hasWorkoutPlanned || !gcalAccessToken) return;
     const events = await fetchCalendarEventsForDate(viewedDate);
     if(viewedDate !== currentDate) return; // user navigated away while this was in flight
@@ -631,6 +641,15 @@
       ? "🕐 Best window " + dayLabel + ": " + formatTimeShort(window.start) + " – " + formatTimeShort(window.end)
       : "🕐 " + dayLabel + " looks packed — no clear " + MIN_WORKOUT_GAP_MINUTES + "+ min opening between " +
         WORKOUT_WINDOW_START_HOUR + "am–" + (WORKOUT_WINDOW_END_HOUR - 12) + "pm.";
+  }
+
+  function toggleWorkoutDone(){
+    const plan = loadWorkoutPlan();
+    const entry = plan[currentDate];
+    if(!entry || !entry.label) return;
+    entry.done = !entry.done;
+    saveWorkoutPlan(plan);
+    renderWorkoutCard();
   }
 
   // ---------- workout plan sheet ----------
@@ -3253,6 +3272,7 @@
 
   document.getElementById("planWorkoutsBtn").addEventListener("click", openWorkoutPlanSheet);
   document.getElementById("workoutCardEditBtn").addEventListener("click", openWorkoutPlanSheet);
+  document.getElementById("workoutDoneBtn").addEventListener("click", toggleWorkoutDone);
   document.getElementById("workoutPlanCloseBtn").addEventListener("click", closeWorkoutPlanSheet);
   document.getElementById("workoutPlanSaveBtn").addEventListener("click", saveWorkoutPlanFromForm);
   workoutPlanOverlay.addEventListener("click", (e) => { if(e.target === workoutPlanOverlay) closeWorkoutPlanSheet(); });

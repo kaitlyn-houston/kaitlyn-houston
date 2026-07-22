@@ -278,6 +278,8 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .workout-day-pill.done{background:var(--good);color:#fff;border-color:var(--good);}
 .workout-today-label{font-size:13px;color:var(--text-dim);}
 .workout-best-time{font-size:12px;color:var(--terracotta);margin-top:4px;}
+.workout-done-btn{margin-top:10px;width:100%;padding:10px;font-size:13px;}
+.workout-done-btn.is-done{background:var(--good);border-color:var(--good);color:#fff;}
 
 .workout-plan-row{border-bottom:1px solid var(--border);padding:10px 0;}
 .workout-plan-row:last-child{border-bottom:none;}
