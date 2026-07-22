@@ -1395,7 +1395,9 @@
   function setBar(key, val, goal){
     document.getElementById(key + "Val").textContent = Math.round(val) + " / " + Math.round(goal) + "g";
     const pct = goal > 0 ? Math.min((val / goal) * 100, 100) : 0;
-    document.getElementById(key + "Bar").style.width = pct + "%";
+    document.getElementById(key + "Pct").textContent = Math.round(pct) + "%";
+    const circumference = 213.6;
+    document.getElementById(key + "Ring").style.strokeDashoffset = String(circumference * (1 - pct / 100));
   }
 
   function renderMeals(entries){
@@ -3245,12 +3247,12 @@
     const avg = (key) => loggedDays.reduce((s, d) => s + d.totals[key], 0) / loggedDays.length;
 
     const stats = [
-      { num: Math.round(avg("calories")) + " kcal", lbl: "Avg calories (goal " + goals.calories + ")" },
-      { num: loggedDays.length + " / " + dayData.length, lbl: "Days logged" },
-      { num: Math.round(avg("protein")) + "g", lbl: "Avg protein (goal " + goals.protein + "g)" },
-      { num: Math.round(avg("carbs")) + "g / " + Math.round(avg("fat")) + "g", lbl: "Avg carbs / fat" },
-      { num: Math.round(avg("fiber")) + "g", lbl: "Avg fiber (aim " + FIBER_GOAL_G + "g)" },
-      { num: Math.round(avg("sugar")) + "g / " + Math.round(avg("sodium")) + "mg", lbl: "Avg sugar / sodium" }
+      { num: Math.round(avg("calories")) + " kcal", lbl: "Avg calories (goal " + goals.calories + ")", color: "amber" },
+      { num: loggedDays.length + " / " + dayData.length, lbl: "Days logged", color: "good" },
+      { num: Math.round(avg("protein")) + "g", lbl: "Avg protein (goal " + goals.protein + "g)", color: "protein" },
+      { num: Math.round(avg("carbs")) + "g / " + Math.round(avg("fat")) + "g", lbl: "Avg carbs / fat", color: "carbs" },
+      { num: Math.round(avg("fiber")) + "g", lbl: "Avg fiber (aim " + FIBER_GOAL_G + "g)", color: "good" },
+      { num: Math.round(avg("sugar")) + "g / " + Math.round(avg("sodium")) + "mg", lbl: "Avg sugar / sodium", color: "danger" }
     ];
 
     const burnedDays = dayData.filter(d => d.burned != null);
@@ -3258,7 +3260,8 @@
       const avgBurned = burnedDays.reduce((s, d) => s + d.burned, 0) / burnedDays.length;
       stats.push({
         num: Math.round(avgBurned) + " kcal",
-        lbl: "Avg burned (Garmin, " + burnedDays.length + " day" + (burnedDays.length === 1 ? "" : "s") + ")"
+        lbl: "Avg burned (Garmin, " + burnedDays.length + " day" + (burnedDays.length === 1 ? "" : "s") + ")",
+        color: "terracotta"
       });
     }
 
@@ -3269,7 +3272,8 @@
       const latestDisplay = unit === "kg" ? latest.weightKg : kgToLb(latest.weightKg);
       stats.push({
         num: round1(latestDisplay) + " " + unit,
-        lbl: "Latest weight (" + trendDayLabel(latest.dateStr) + ")"
+        lbl: "Latest weight (" + trendDayLabel(latest.dateStr) + ")",
+        color: "carbs"
       });
       if(weightEntries.length > 1){
         const first = weightEntries[0];
@@ -3279,7 +3283,8 @@
         const sign = rounded > 0 ? "+" : "";
         stats.push({
           num: sign + rounded + " " + unit,
-          lbl: "Weight change over range"
+          lbl: "Weight change over range",
+          color: "carbs"
         });
       }
     }
@@ -3287,8 +3292,9 @@
     stats.forEach(s => {
       const box = document.createElement("div");
       box.className = "trend-stat";
-      box.innerHTML = '<div class="num mono">' + escapeHtml(String(s.num)) +
-        '</div><div class="lbl">' + escapeHtml(s.lbl) + '</div>';
+      box.innerHTML = '<div class="trend-stat-head"><span class="trend-stat-dot" style="background:var(--' + s.color + ');"></span>' +
+        '<div class="num mono">' + escapeHtml(String(s.num)) + '</div></div>' +
+        '<div class="lbl">' + escapeHtml(s.lbl) + '</div>';
       container.appendChild(box);
     });
   }

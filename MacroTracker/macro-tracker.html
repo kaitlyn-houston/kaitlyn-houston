@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0B0E14">
+<meta name="theme-color" content="#090B10">
 <title>Macro Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -143,20 +143,44 @@
   </div>
 
   <div class="dash-row3">
-    <div class="dash-tile dash-tile-sm">
+    <div class="dash-tile dash-tile-sm mini-ring-tile">
+      <div class="mini-ring-wrap">
+        <svg viewBox="0 0 80 80">
+          <circle class="mini-ring-track" cx="40" cy="40" r="34" fill="none" stroke-width="7"/>
+          <circle id="proteinRing" class="mini-ring-fill protein" cx="40" cy="40" r="34" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+        </svg>
+        <div class="mini-ring-center">
+          <div class="mini-ring-pct mono" id="proteinPct">0%</div>
+        </div>
+      </div>
       <div class="dash-tile-label">Protein</div>
-      <div class="dash-tile-num-sm mono" id="proteinVal">0 / 0g</div>
-      <div class="macro-bar-track"><div class="macro-bar-fill" id="proteinBar" style="width:0%;background:var(--protein);"></div></div>
+      <div class="mini-ring-sub mono" id="proteinVal">0 / 0g</div>
     </div>
-    <div class="dash-tile dash-tile-sm">
+    <div class="dash-tile dash-tile-sm mini-ring-tile">
+      <div class="mini-ring-wrap">
+        <svg viewBox="0 0 80 80">
+          <circle class="mini-ring-track" cx="40" cy="40" r="34" fill="none" stroke-width="7"/>
+          <circle id="carbsRing" class="mini-ring-fill carbs" cx="40" cy="40" r="34" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+        </svg>
+        <div class="mini-ring-center">
+          <div class="mini-ring-pct mono" id="carbsPct">0%</div>
+        </div>
+      </div>
       <div class="dash-tile-label">Carbs</div>
-      <div class="dash-tile-num-sm mono" id="carbsVal">0 / 0g</div>
-      <div class="macro-bar-track"><div class="macro-bar-fill" id="carbsBar" style="width:0%;background:var(--carbs);"></div></div>
+      <div class="mini-ring-sub mono" id="carbsVal">0 / 0g</div>
     </div>
-    <div class="dash-tile dash-tile-sm">
+    <div class="dash-tile dash-tile-sm mini-ring-tile">
+      <div class="mini-ring-wrap">
+        <svg viewBox="0 0 80 80">
+          <circle class="mini-ring-track" cx="40" cy="40" r="34" fill="none" stroke-width="7"/>
+          <circle id="fatRing" class="mini-ring-fill fat" cx="40" cy="40" r="34" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+        </svg>
+        <div class="mini-ring-center">
+          <div class="mini-ring-pct mono" id="fatPct">0%</div>
+        </div>
+      </div>
       <div class="dash-tile-label">Fat</div>
-      <div class="dash-tile-num-sm mono" id="fatVal">0 / 0g</div>
-      <div class="macro-bar-track"><div class="macro-bar-fill" id="fatBar" style="width:0%;background:var(--fat);"></div></div>
+      <div class="mini-ring-sub mono" id="fatVal">0 / 0g</div>
     </div>
   </div>
 
