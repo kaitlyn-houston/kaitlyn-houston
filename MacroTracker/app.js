@@ -24,6 +24,7 @@
   const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
   const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
   const TODOS_KEY = "macroTracker.todos.v1";
+  const CAL_EVENT_DONE_KEY = "macroTracker.calEventDone.v1";
   const GYM_LOG_KEY = "macroTracker.gymLog.v1";
   const WORKOUT_ROUTINES_KEY = "macroTracker.workoutRoutines.v1";
   const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -304,6 +305,15 @@
   function saveTodos(map){
     localStorage.setItem(TODOS_KEY, JSON.stringify(map));
   }
+  function loadCalEventDone(){
+    try{
+      const raw = localStorage.getItem(CAL_EVENT_DONE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveCalEventDone(map){
+    localStorage.setItem(CAL_EVENT_DONE_KEY, JSON.stringify(map));
+  }
   function loadGymLog(){
     try{
       const raw = localStorage.getItem(GYM_LOG_KEY);
@@ -544,10 +554,10 @@
     renderWaterCard();
     renderWorkoutCard();
     renderActivityCard();
-    renderCalendarCard();
     renderMicroCard(totals);
     renderNotesCard();
     renderTodoCard();
+    refreshTodoCalendarCache();
     renderGymLogSummary();
     renderInsight(totals, goals);
     scheduleCloudSync();
@@ -722,7 +732,27 @@
       container.appendChild(row);
     }
 
-    if(list.length === 0 && !hasWorkout){
+    const calEvents = (todoCalendarCache.date === currentDate)
+      ? todoCalendarCache.events.filter(ev => !isWorkoutEvent(ev))
+      : [];
+    if(calEvents.length > 0){
+      const doneMap = loadCalEventDone();
+      calEvents.forEach(ev => {
+        const key = currentDate + "|" + ev.id;
+        const row = document.createElement("div");
+        row.className = "todo-row" + (doneMap[key] ? " done" : "");
+        row.innerHTML = `
+          <label class="todo-check">
+            <input type="checkbox" class="todo-check-input" ${doneMap[key] ? "checked" : ""}>
+            <span class="todo-text">📅 ${escapeHtml(eventTimeLabel(ev))} — ${escapeHtml(ev.summary || "(untitled)")}</span>
+          </label>
+        `;
+        row.querySelector(".todo-check-input").addEventListener("change", () => toggleCalEventDone(key));
+        container.appendChild(row);
+      });
+    }
+
+    if(list.length === 0 && !hasWorkout && calEvents.length === 0){
       container.innerHTML = '<div class="garmin-history-empty">Nothing planned for ' + formatDateLabel(currentDate) + '.</div>';
       return;
     }
@@ -768,6 +798,13 @@
     const list = (todos[currentDate] || []).filter(x => x.id !== id);
     todos[currentDate] = list;
     saveTodos(todos);
+    renderTodoCard();
+  }
+
+  function toggleCalEventDone(key){
+    const map = loadCalEventDone();
+    map[key] = !map[key];
+    saveCalEventDone(map);
     renderTodoCard();
   }
 
@@ -2464,6 +2501,7 @@
     checkinLog: CHECKIN_LOG_KEY,
     dayNotes: DAY_NOTES_KEY,
     todos: TODOS_KEY,
+    calEventDone: CAL_EVENT_DONE_KEY,
     gymLog: GYM_LOG_KEY,
     workoutRoutines: WORKOUT_ROUTINES_KEY
   };
@@ -2963,7 +3001,7 @@
     saveGcalCalendarIds(ids.length > 0 ? ids : ["primary"]);
     const workoutIds = Array.from(document.querySelectorAll(".gcal-workout-toggle:checked")).map(cb => cb.value);
     saveGcalWorkoutCalendarIds(workoutIds);
-    renderCalendarCard();
+    refreshTodoCalendarCache();
     renderWorkoutCard();
     alert("Calendar selection saved.");
   }
@@ -3007,7 +3045,7 @@
           saveGcalToken(tokenResponse.access_token, tokenResponse.expires_in);
           updateGcalStatus();
           renderCalendarPicker();
-          renderCalendarCard();
+          refreshTodoCalendarCache();
         }
       });
     }
@@ -3040,7 +3078,7 @@
     if(stored){
       gcalAccessToken = stored.access_token;
       updateGcalStatus();
-      renderCalendarCard();
+      refreshTodoCalendarCache();
       return;
     }
     if(!loadGcalClientId()) return;
@@ -3062,7 +3100,7 @@
     gcalAccessToken = null;
     clearGcalToken();
     updateGcalStatus();
-    renderCalendarCard();
+    refreshTodoCalendarCache();
   }
 
   async function fetchCalendarList(){
@@ -3141,81 +3179,71 @@
     return start ? start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "All day";
   }
 
-  function renderCalendarEventList(events){
-    const list = document.getElementById("calendarCardList");
-    list.innerHTML = "";
-    events.forEach(ev => {
-      const row = document.createElement("div");
-      row.className = "garmin-history-row";
-      row.innerHTML = '<span class="garmin-history-date">' + escapeHtml(ev.summary || "(untitled)") +
-        '</span><span class="garmin-history-cal">' + escapeHtml(eventTimeLabel(ev)) + '</span>';
-      list.appendChild(row);
-    });
-  }
+  let todoCalendarCache = { date: null, events: [] };
 
-  async function renderCalendarCard(){
-    const card = document.getElementById("calendarCard");
+  async function refreshTodoCalendarCache(){
     if(!gcalAccessToken){
-      card.style.display = "none";
+      todoCalendarCache = { date: null, events: [] };
+      renderTodoCard();
       return;
     }
     const dateForFetch = currentDate;
-    const rawEvents = await fetchCalendarEventsForDate(dateForFetch);
+    const events = await fetchCalendarEventsForDate(dateForFetch);
     if(dateForFetch !== currentDate) return; // user navigated away before this resolved
-    if(rawEvents === null){
-      card.style.display = "none";
+    todoCalendarCache = { date: dateForFetch, events: events || [] };
+    renderTodoCard();
+  }
+
+  // ---------- calendar view sheet ----------
+  const calendarViewOverlay = document.getElementById("calendarViewOverlay");
+
+  function openCalendarViewSheet(){
+    renderCalendarView();
+    calendarViewOverlay.classList.add("open");
+  }
+  function closeCalendarViewSheet(){
+    calendarViewOverlay.classList.remove("open");
+  }
+
+  async function renderCalendarView(){
+    const body = document.getElementById("calendarViewBody");
+    if(!gcalAccessToken){
+      body.innerHTML = '<div class="garmin-history-empty">Connect Google Calendar first (☰ → Connections & Data → Google Calendar) to see your events here.</div>';
       return;
     }
-    // Workouts are tracked via the workout plan / to-do list instead, so keep them out of the schedule.
-    const events = rawEvents.filter(ev => !isWorkoutEvent(ev));
+    body.innerHTML = '<div class="garmin-history-empty">Loading…</div>';
+    const dates = currentWeekDates(currentDate);
+    const weekKey = dates.join(",");
+    const results = await Promise.all(dates.map(d => fetchCalendarEventsForDate(d)));
+    if(currentWeekDates(currentDate).join(",") !== weekKey) return; // navigated away while loading
 
-    document.getElementById("calendarCardLabel").textContent =
-      formatDateLabel(currentDate) + "'s schedule";
+    body.innerHTML = "";
+    dates.forEach((d, idx) => {
+      const events = results[idx] || [];
+      const section = document.createElement("div");
+      section.className = "cal-view-day";
 
-    const nextEl = document.getElementById("calendarNextEvent");
-    const moreBtn = document.getElementById("calendarMoreBtn");
-    const list = document.getElementById("calendarCardList");
-    list.innerHTML = "";
-    list.style.display = "none";
-    moreBtn.style.display = "none";
-    renderCalendarEventList(events);
+      const heading = document.createElement("div");
+      heading.className = "cal-view-day-head" + (d === todayStr() ? " today" : "");
+      heading.textContent = WORKOUT_DAY_ABBRS[idx] + " · " + formatDateLabel(d);
+      section.appendChild(heading);
 
-    if(events.length === 0){
-      nextEl.className = "calendar-next-event empty";
-      nextEl.textContent = "No events.";
-      card.style.display = "block";
-      return;
-    }
-
-    const isToday = currentDate === todayStr();
-    const now = new Date();
-    let nextIdx = 0;
-    if(isToday){
-      nextIdx = events.findIndex(ev => {
-        const start = ev.start && ev.start.dateTime ? new Date(ev.start.dateTime) : null;
-        return start && start >= now;
-      });
-    }
-
-    if(nextIdx === -1){
-      nextEl.className = "calendar-next-event empty";
-      nextEl.textContent = "No more events today.";
-      moreBtn.textContent = "Show " + events.length + " earlier event" + (events.length === 1 ? "" : "s");
-      moreBtn.style.display = "inline";
-    } else {
-      const next = events[nextIdx];
-      nextEl.className = "calendar-next-event";
-      nextEl.innerHTML = '<div class="cal-next-title">' + escapeHtml(next.summary || "(untitled)") + '</div>' +
-        '<div class="cal-next-time">' + escapeHtml(eventTimeLabel(next)) + '</div>';
-
-      const remaining = events.length - nextIdx - 1;
-      if(remaining > 0){
-        moreBtn.textContent = "+" + remaining + " more today";
-        moreBtn.style.display = "inline";
+      if(events.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "garmin-history-empty";
+        empty.textContent = "No events.";
+        section.appendChild(empty);
+      } else {
+        events.forEach(ev => {
+          const row = document.createElement("div");
+          row.className = "garmin-history-row";
+          row.innerHTML = '<span class="garmin-history-date">' + escapeHtml(ev.summary || "(untitled)") +
+            '</span><span class="garmin-history-cal">' + escapeHtml(eventTimeLabel(ev)) + '</span>';
+          section.appendChild(row);
+        });
       }
-    }
-
-    card.style.display = "block";
+      body.appendChild(section);
+    });
   }
 
   // ---------- drawer menu ----------
@@ -3914,15 +3942,15 @@
   document.getElementById("gcalSignOutBtn").addEventListener("click", signOutGoogleCalendar);
   document.getElementById("gcalSaveCalendarsBtn").addEventListener("click", saveCalendarSelectionFromForm);
   calendarOverlay.addEventListener("click", (e) => { if(e.target === calendarOverlay) closeCalendarSheet(); });
-  document.getElementById("calendarMoreBtn").addEventListener("click", () => {
-    const list = document.getElementById("calendarCardList");
-    list.style.display = list.style.display === "flex" ? "none" : "flex";
-  });
+
+  document.getElementById("viewCalendarBtn").addEventListener("click", openCalendarViewSheet);
+  document.getElementById("calendarViewCloseBtn").addEventListener("click", closeCalendarViewSheet);
+  calendarViewOverlay.addEventListener("click", (e) => { if(e.target === calendarViewOverlay) closeCalendarViewSheet(); });
 
   document.getElementById("menuBtn").addEventListener("click", openDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", (e) => { if(e.target === drawerOverlay) closeDrawer(); });
-  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn", "accountSyncBtn", "remindersBtn"].forEach(id => {
+  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "viewCalendarBtn", "connectCalendarBtn", "backupDataBtn", "accountSyncBtn", "remindersBtn"].forEach(id => {
     document.getElementById(id).addEventListener("click", closeDrawer);
   });
 

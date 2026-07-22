@@ -64,6 +64,9 @@
       </button>
 
       <div class="drawer-section-label">Connections &amp; Data</div>
+      <button type="button" class="drawer-item" id="viewCalendarBtn">
+        <span class="drawer-item-icon">🗓️</span> View calendar
+      </button>
       <button type="button" class="drawer-item" id="connectCalendarBtn">
         <span class="drawer-item-icon">📅</span> Google Calendar
       </button>
@@ -254,13 +257,6 @@
   <div class="activity-card" id="activityCard" style="display:none;">
     <div class="activity-card-label">Recent activity</div>
     <div id="activityCardList" class="garmin-history-list"></div>
-  </div>
-
-  <div class="activity-card" id="calendarCard" style="display:none;">
-    <div class="activity-card-label" id="calendarCardLabel">Schedule</div>
-    <div id="calendarNextEvent" class="calendar-next-event"></div>
-    <button type="button" class="link-btn" id="calendarMoreBtn" style="display:none;margin-top:8px;"></button>
-    <div id="calendarCardList" class="garmin-history-list" style="display:none;margin-top:8px;"></div>
   </div>
 
   <div class="activity-card" id="notesCard">
@@ -755,6 +751,18 @@
 </div>
 
 <!-- Google Calendar Sheet -->
+<!-- Calendar View Sheet -->
+<div class="sheet-overlay" id="calendarViewOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Your calendar</h3>
+    <div id="calendarViewBody"></div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="calendarViewCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet-overlay" id="calendarOverlay">
   <div class="sheet">
     <div class="sheet-handle"></div>

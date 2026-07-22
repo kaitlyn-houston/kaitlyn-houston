@@ -212,10 +212,10 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .micro-value.good{color:var(--good);}
 .micro-value.warn{color:var(--danger);}
 
-.calendar-next-event{display:flex;flex-direction:column;gap:3px;}
-.calendar-next-event .cal-next-title{font-size:15px;font-weight:600;color:var(--text);}
-.calendar-next-event .cal-next-time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);}
-.calendar-next-event.empty{font-size:12px;color:var(--text-faint);}
+.cal-view-day{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.cal-view-day:last-child{margin-bottom:0;}
+.cal-view-day-head{font-size:12px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
+.cal-view-day-head.today{color:var(--amber);}
 
 /* Drawer menu */
 .drawer-overlay{
