@@ -372,6 +372,16 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .trend-stat .num{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--text);}
 .trend-stat .lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;}
 
+.trend-section-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin:18px 0 8px;}
+.trend-workout-strip{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.trend-workout-pill{
+  flex-shrink:0;width:26px;height:26px;border-radius:8px;
+  background:var(--bg-inset);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--text-faint);
+}
+.trend-workout-pill.done{background:var(--good);color:#fff;border-color:var(--good);}
+
 
 /* Meal sections */
 .meal-section{margin-bottom:18px;}

@@ -3073,6 +3073,97 @@
 
     renderTrendChart(dayData, goals);
     renderTrendStats(dayData, goals);
+    renderWorkoutTrend(dates);
+  }
+
+  function getGymExerciseNames(){
+    const log = loadGymLog();
+    const names = new Set();
+    Object.values(log).forEach(list => list.forEach(ex => names.add(ex.name)));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderTrendExerciseOptions(){
+    const select = document.getElementById("trendExerciseSelect");
+    const names = getGymExerciseNames();
+    const prevValue = select.value;
+    select.innerHTML = "";
+    if(names.length === 0){
+      select.innerHTML = '<option value="">No exercises logged yet</option>';
+      select.disabled = true;
+      return false;
+    }
+    select.disabled = false;
+    names.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+    if(names.includes(prevValue)) select.value = prevValue;
+    return true;
+  }
+
+  function renderWorkoutTrend(dates){
+    const plan = loadWorkoutPlan();
+    const gymLog = loadGymLog();
+
+    const strip = document.getElementById("trendWorkoutStrip");
+    strip.innerHTML = "";
+    let completedCount = 0;
+    dates.forEach(d => {
+      const planEntry = plan[d];
+      const hasGymLog = (gymLog[d] || []).length > 0;
+      const completed = (planEntry && planEntry.done) || hasGymLog;
+      if(completed) completedCount++;
+      const pill = document.createElement("div");
+      pill.className = "trend-workout-pill" + (completed ? " done" : "");
+      pill.textContent = String(new Date(d + "T00:00:00").getDate());
+      pill.title = d + (completed ? " — workout completed" : " — no workout logged");
+      strip.appendChild(pill);
+    });
+    document.getElementById("trendWorkoutCount").textContent =
+      completedCount + " / " + dates.length + " days with a completed workout";
+
+    const hasExercises = renderTrendExerciseOptions();
+    const chart = document.getElementById("trendExerciseChart");
+    chart.innerHTML = "";
+    if(!hasExercises) return;
+
+    const exName = document.getElementById("trendExerciseSelect").value;
+    const unit = loadWeightUnit();
+    const dayMax = dates.map(d => {
+      const list = gymLog[d] || [];
+      const ex = list.find(x => x.name === exName);
+      if(!ex || ex.sets.length === 0) return null;
+      return Math.max(...ex.sets.map(s => s.weight));
+    });
+    const loggedWeights = dayMax.filter(w => w != null);
+    const maxWeight = Math.max(...loggedWeights, 1);
+
+    dates.forEach((d, i) => {
+      const w = dayMax[i];
+      const col = document.createElement("div");
+      col.className = "trend-bar-col";
+
+      const track = document.createElement("div");
+      track.className = "trend-bar-track";
+
+      const fill = document.createElement("div");
+      const pct = w != null ? Math.max((w / maxWeight) * 100, 2) : 3;
+      fill.className = "trend-bar-fill" + (w == null ? " empty" : "");
+      fill.style.height = pct + "%";
+      fill.title = w != null ? (w + unit + " top set") : "Not logged";
+      track.appendChild(fill);
+
+      const label = document.createElement("div");
+      label.className = "trend-bar-label";
+      label.textContent = trendDayLabel(d);
+
+      col.appendChild(track);
+      col.appendChild(label);
+      chart.appendChild(col);
+    });
   }
 
   function renderTrendChart(dayData, goals){
@@ -3594,6 +3685,9 @@
       document.querySelectorAll("#trendsRangeToggle button").forEach(b => b.classList.toggle("active", b === btn));
       renderTrends();
     });
+  });
+  document.getElementById("trendExerciseSelect").addEventListener("change", () => {
+    renderWorkoutTrend(getDateRange(trendsRangeDays));
   });
 
   document.getElementById("editGoalsBtn").addEventListener("click", openGoals);
