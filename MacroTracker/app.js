@@ -641,7 +641,35 @@
   }
 
   // ---------- gym log ----------
+  const EXERCISE_LIBRARY = [
+    "Shoulder Press", "Hammer Curls", "Bicep Curls", "Seated Rows", "Tricep Pushdown",
+    "Flyes", "Split Squats", "Goblet Squats", "Face Pulls", "Straight-Arm Pulldowns",
+    "Lat Extensions", "Hip Thrusts", "Leg Press", "Leg Curls", "Leg Extensions",
+    "RDLs (Romanian Deadlifts)", "Bench Press", "Deadlift", "Squat", "Pull-Ups",
+    "Push-Ups", "Lat Pulldown", "Lunges", "Plank", "Overhead Press", "Bent-Over Rows"
+  ];
+
   const gymLogOverlay = document.getElementById("gymLogOverlay");
+
+  function renderGymExercisePicker(){
+    const names = new Set(EXERCISE_LIBRARY);
+    getGymExerciseNames().forEach(n => names.add(n));
+    const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+
+    const datalist = document.getElementById("gymExerciseDatalist");
+    datalist.innerHTML = sorted.map(n => '<option value="' + escapeHtml(n) + '"></option>').join("");
+
+    const library = document.getElementById("gymExerciseLibrary");
+    library.innerHTML = "";
+    sorted.forEach(name => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "gym-exercise-chip";
+      chip.textContent = name;
+      chip.addEventListener("click", () => addGymExercise(name));
+      library.appendChild(chip);
+    });
+  }
 
   function openGymLogSheet(){
     renderGymLogSheet();
@@ -699,6 +727,7 @@
 
   function renderGymLogSheet(){
     document.getElementById("gymLogTitle").textContent = "Log workout — " + formatDateLabel(currentDate);
+    renderGymExercisePicker();
     const unit = loadWeightUnit();
     const list = loadGymLog()[currentDate] || [];
     const container = document.getElementById("gymLogExerciseList");

@@ -302,6 +302,14 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
 .gym-add-set-row input:focus{outline:none;border-color:var(--amber);}
 .gym-add-set-row .btn{flex:none;padding:8px 12px;font-size:12px;}
 
+.gym-exercise-library{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;max-height:150px;overflow-y:auto;}
+.gym-exercise-chip{
+  background:var(--bg-inset);border:1px solid var(--border);color:var(--text);
+  font-size:11px;font-family:'Inter',sans-serif;padding:6px 10px;border-radius:20px;
+  cursor:pointer;
+}
+.gym-exercise-chip:active{border-color:var(--amber);}
+
 .day-notes-input{
   width:100%;
   background:var(--bg-inset);
