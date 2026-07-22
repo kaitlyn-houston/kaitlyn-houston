@@ -30,24 +30,7 @@
   <img src="https://img.shields.io/badge/GitHub_Pages-222222?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Pages" />
 </p>
 
-### 📊 GitHub Statistics
 
-<p align="left">
-  <a href="https://github.com/kaitlyn-houston">
-    <img height="180em" src="https://vercel.app" alt="Kaitlyn's GitHub Stats" />
-  </a>
-  <a href="https://github.com/kaitlyn-houston">
-    <img height="180em" src="https://vercel.app" alt="Top Languages" />
-  </a>
-</p>
-
-### 📌 Featured Project
-
-<p align="left">
-  <a href="https://github.com/kaitlyn-houston/lapboard">
-    <img height="150em" src="https://github-readme-stats.vercel.app/api/pin/?username=kaitlyn-houston&repo=lapboard&theme=dark" alt="Lapboard Repo" />
-  </a>
-</p>
 
 ### 📬 Connect With Me
 
