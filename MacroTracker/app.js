@@ -774,8 +774,9 @@
       }
     }
 
+    const workoutSegmentNames = hasWorkout ? splitWorkoutLabel(plan[currentDate].label) : [];
     const calEvents = (todoCalendarCache.date === currentDate)
-      ? todoCalendarCache.events.filter(ev => !isWorkoutEvent(ev))
+      ? todoCalendarCache.events.filter(ev => !workoutSegmentNames.includes(ev.summary || ""))
       : [];
     if(calEvents.length > 0){
       const doneMap = loadCalEventDone();
