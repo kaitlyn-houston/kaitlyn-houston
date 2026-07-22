@@ -23,6 +23,7 @@
   const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
   const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
+  const TODOS_KEY = "macroTracker.todos.v1";
   const GYM_LOG_KEY = "macroTracker.gymLog.v1";
   const WORKOUT_ROUTINES_KEY = "macroTracker.workoutRoutines.v1";
   const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -294,6 +295,15 @@
   function saveDayNotes(map){
     localStorage.setItem(DAY_NOTES_KEY, JSON.stringify(map));
   }
+  function loadTodos(){
+    try{
+      const raw = localStorage.getItem(TODOS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveTodos(map){
+    localStorage.setItem(TODOS_KEY, JSON.stringify(map));
+  }
   function loadGymLog(){
     try{
       const raw = localStorage.getItem(GYM_LOG_KEY);
@@ -537,6 +547,7 @@
     renderCalendarCard();
     renderMicroCard(totals);
     renderNotesCard();
+    renderTodoCard();
     renderGymLogSummary();
     renderInsight(totals, goals);
     scheduleCloudSync();
@@ -657,6 +668,80 @@
       delete notes[currentDate];
     }
     saveDayNotes(notes);
+  }
+
+  // ---------- weekly to-do list ----------
+  function renderTodoCard(){
+    const todos = loadTodos();
+    const dates = currentWeekDates(currentDate);
+
+    const strip = document.getElementById("todoWeekStrip");
+    strip.innerHTML = "";
+    dates.forEach((d, idx) => {
+      const list = todos[d] || [];
+      let cls = "workout-day-pill";
+      if(d === currentDate) cls += " today";
+      if(list.length > 0) cls += " planned";
+      if(list.length > 0 && list.every(t => t.done)) cls += " done";
+      const pill = document.createElement("div");
+      pill.className = cls;
+      pill.textContent = WORKOUT_DAY_ABBRS[idx];
+      pill.title = list.length > 0
+        ? list.length + " to-do" + (list.length === 1 ? "" : "s") + (list.every(t => t.done) ? " (all done)" : "")
+        : "Nothing planned";
+      strip.appendChild(pill);
+    });
+
+    const list = todos[currentDate] || [];
+    const container = document.getElementById("todoList");
+    if(list.length === 0){
+      container.innerHTML = '<div class="garmin-history-empty">Nothing planned for ' + formatDateLabel(currentDate) + '.</div>';
+      return;
+    }
+    container.innerHTML = "";
+    list.forEach(t => {
+      const row = document.createElement("div");
+      row.className = "todo-row" + (t.done ? " done" : "");
+      row.innerHTML = `
+        <label class="todo-check">
+          <input type="checkbox" class="todo-check-input" ${t.done ? "checked" : ""}>
+          <span class="todo-text">${escapeHtml(t.text)}</span>
+        </label>
+        <button type="button" class="icon-btn danger todo-remove-btn">✕</button>
+      `;
+      row.querySelector(".todo-check-input").addEventListener("change", () => toggleTodo(t.id));
+      row.querySelector(".todo-remove-btn").addEventListener("click", () => removeTodo(t.id));
+      container.appendChild(row);
+    });
+  }
+
+  function addTodo(text){
+    const trimmed = text.trim();
+    if(!trimmed) return;
+    const todos = loadTodos();
+    const list = todos[currentDate] || [];
+    list.push({ id: uid(), text: trimmed, done: false });
+    todos[currentDate] = list;
+    saveTodos(todos);
+    renderTodoCard();
+  }
+
+  function toggleTodo(id){
+    const todos = loadTodos();
+    const list = todos[currentDate] || [];
+    const t = list.find(x => x.id === id);
+    if(!t) return;
+    t.done = !t.done;
+    saveTodos(todos);
+    renderTodoCard();
+  }
+
+  function removeTodo(id){
+    const todos = loadTodos();
+    const list = (todos[currentDate] || []).filter(x => x.id !== id);
+    todos[currentDate] = list;
+    saveTodos(todos);
+    renderTodoCard();
   }
 
   // ---------- gym log ----------
@@ -2350,6 +2435,7 @@
     workoutPlan: WORKOUT_PLAN_KEY,
     checkinLog: CHECKIN_LOG_KEY,
     dayNotes: DAY_NOTES_KEY,
+    todos: TODOS_KEY,
     gymLog: GYM_LOG_KEY,
     workoutRoutines: WORKOUT_ROUTINES_KEY
   };
@@ -3850,6 +3936,18 @@
   document.getElementById("planWorkoutsBtn").addEventListener("click", openWorkoutPlanSheet);
   document.getElementById("workoutCardEditBtn").addEventListener("click", openWorkoutPlanSheet);
   document.getElementById("dayNotesInput").addEventListener("input", saveDayNote);
+
+  document.getElementById("todoAddBtn").addEventListener("click", () => {
+    const input = document.getElementById("todoNewInput");
+    addTodo(input.value);
+    input.value = "";
+  });
+  document.getElementById("todoNewInput").addEventListener("keydown", (e) => {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    addTodo(e.target.value);
+    e.target.value = "";
+  });
 
   document.getElementById("gymLogOpenBtn").addEventListener("click", openGymLogSheet);
   document.getElementById("gymLogCloseBtn").addEventListener("click", closeGymLogSheet);
