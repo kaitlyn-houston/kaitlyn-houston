@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#1A1512"/>
-  <circle cx="256" cy="256" r="160" fill="none" stroke="#362D26" stroke-width="36"/>
-  <path d="M256 96 A160 160 0 1 1 123 344" fill="none" stroke="#C99A52" stroke-width="36" stroke-linecap="round"/>
-  <circle cx="256" cy="256" r="70" fill="#B84C6B"/>
+  <rect width="512" height="512" fill="#090B10"/>
+  <defs>
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA35C"/>
+      <stop offset="100%" stop-color="#FF6F5E"/>
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#232838" stroke-width="36"/>
+  <path d="M256 96 A160 160 0 1 1 123 344" fill="none" stroke="url(#ringGrad)" stroke-width="36" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="70" fill="#3ADD97"/>
 </svg>
