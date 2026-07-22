@@ -9,10 +9,90 @@
   const GARMIN_ACTIVITIES_KEY = "macroTracker.garminActivities.v1";
   const GCAL_CLIENT_ID_KEY = "macroTracker.gcalClientId.v1";
   const GCAL_TOKEN_KEY = "macroTracker.gcalToken.v1";
+  const GCAL_CALENDAR_IDS_KEY = "macroTracker.gcalCalendarIds.v1";
+  const GCAL_WORKOUT_CALENDAR_IDS_KEY = "macroTracker.gcalWorkoutCalendarIds.v1";
+  const FIREBASE_CONFIG_KEY = "macroTracker.firebaseConfig.v1";
   const WEIGHT_KEY = "macroTracker.weight.v1";
   const WEIGHT_UNIT_KEY = "macroTracker.weightUnit.v1";
+  const WEIGHT_GOAL_KEY = "macroTracker.weightGoal.v1";
   const THEME_KEY = "macroTracker.theme.v1";
+  const WATER_KEY = "macroTracker.water.v1";
+  const WATER_GOAL_KEY = "macroTracker.waterGoal.v1";
+  const TEMPLATES_KEY = "macroTracker.mealTemplates.v1";
+  const WEEKDAY_GOALS_KEY = "macroTracker.weekdayGoals.v1";
+  const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const WORKOUT_PLAN_KEY = "macroTracker.workoutPlan.v1";
+  const WORKOUT_SEGMENT_DONE_KEY = "macroTracker.workoutSegmentDone.v1";
+  const DAY_NOTES_KEY = "macroTracker.dayNotes.v1";
+  const TODOS_KEY = "macroTracker.todos.v1";
+  const CAL_EVENT_DONE_KEY = "macroTracker.calEventDone.v1";
+  const GYM_LOG_KEY = "macroTracker.gymLog.v1";
+  const WORKOUT_ROUTINES_KEY = "macroTracker.workoutRoutines.v1";
+  const WORKOUT_DAY_ABBRS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const WORKOUT_TEMPLATES = {
+    fatloss: [
+      { name: "Full Body Strength", exercises: "Squats, Push-ups, Bent-over Rows, Plank — 3x10-12" },
+      { name: "Cardio Intervals", exercises: "20-25 min HIIT (bike, run, or rower)" },
+      { name: "Full Body Strength", exercises: "Deadlifts, Overhead Press, Lunges, Side Plank — 3x10-12" },
+      { name: "Steady Cardio", exercises: "30-40 min brisk walk, jog, or cycle" },
+      { name: "Full Body Strength", exercises: "Goblet Squats, Bench Press, Rows, Mountain Climbers — 3x10-12" },
+      { name: "Active Recovery", exercises: "Yoga or a light mobility walk" }
+    ],
+    muscle: [
+      { name: "Push Day", exercises: "Bench Press, Overhead Press, Triceps Dips — 4x8-10" },
+      { name: "Pull Day", exercises: "Deadlifts, Barbell Rows, Bicep Curls — 4x8-10" },
+      { name: "Leg Day", exercises: "Squats, Romanian Deadlifts, Calf Raises — 4x8-10" },
+      { name: "Push Day", exercises: "Incline Press, Lateral Raises, Triceps Pushdowns — 3x10-12" },
+      { name: "Pull Day", exercises: "Pull-ups, Cable Rows, Face Pulls — 3x10-12" },
+      { name: "Leg Day", exercises: "Front Squats, Walking Lunges, Leg Press — 3x10-12" }
+    ],
+    endurance: [
+      { name: "Easy Run/Cycle", exercises: "30 min at an easy, conversational pace" },
+      { name: "Interval Training", exercises: "6x400m repeats or 20 min HIIT" },
+      { name: "Strength Support", exercises: "Squats, Lunges, Core circuit — 3x12" },
+      { name: "Long Steady Cardio", exercises: "45-60 min at a steady pace" },
+      { name: "Tempo Effort", exercises: "20-30 min at a comfortably hard pace" },
+      { name: "Cross-training", exercises: "Swim, row, or hike" }
+    ],
+    general: [
+      { name: "Full Body Strength", exercises: "Squats, Push-ups, Rows, Plank — 3x10-12" },
+      { name: "Cardio", exercises: "20-30 min of your choice (walk, bike, swim)" },
+      { name: "Mobility / Yoga", exercises: "20-30 min stretching or a yoga flow" },
+      { name: "Full Body Strength", exercises: "Lunges, Overhead Press, Deadlifts, Side Plank — 3x10-12" },
+      { name: "Cardio", exercises: "20-30 min of your choice" },
+      { name: "Active Recovery", exercises: "Light walk or mobility work" }
+    ]
+  };
+  const WORKOUT_DAY_SLOTS = {
+    3: [0, 2, 4],
+    4: [0, 1, 3, 4],
+    5: [0, 1, 2, 4, 5],
+    6: [0, 1, 2, 3, 4, 5]
+  };
+  const WORKOUT_KEYWORDS = [
+    "run", "ride", "cycle", "cycling", "bike", "swim", "workout", "training",
+    "gym", "yoga", "hiit", "race", "spin", "pilates", "crossfit", "bootcamp",
+    "walk", "hike", "strength", "cardio"
+  ];
+  const NON_WORKOUT_LABELS = [
+    "rest", "work", "working", "off", "day off", "off day", "busy",
+    "travel", "sick", "vacation", "holiday", "none", "n/a"
+  ];
+  let lastWorkoutRecommendation = null;
   const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
+  const FIBER_GOAL_G = 25;
+  const SUGAR_LIMIT_G = 50;
+  const SODIUM_LIMIT_MG = 2300;
+  const CAFFEINE_LIMIT_MG = 400;
+  const ALCOHOL_DAILY_WARN_UNITS = 3;
+  const REMINDERS_KEY = "macroTracker.reminders.v1";
+  const NOTIFIED_LOG_KEY = "macroTracker.notifiedLog.v1";
+  const CHECKIN_LOG_KEY = "macroTracker.checkinLog.v1";
+  const DEFAULT_REMINDERS = {
+    waterEnabled: false, waterTime: "18:00",
+    mealEnabled: false, mealTime: "20:00",
+    workoutEnabled: false
+  };
 
   const MEALS = [
     { id: "breakfast", label: "Breakfast" },
@@ -102,6 +182,35 @@
   function clearGcalToken(){
     localStorage.removeItem(GCAL_TOKEN_KEY);
   }
+  function loadGcalCalendarIds(){
+    try{
+      const raw = localStorage.getItem(GCAL_CALENDAR_IDS_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return (Array.isArray(parsed) && parsed.length > 0) ? parsed : ["primary"];
+    }catch(e){ return ["primary"]; }
+  }
+  function saveGcalCalendarIds(ids){
+    localStorage.setItem(GCAL_CALENDAR_IDS_KEY, JSON.stringify(ids));
+  }
+  function loadGcalWorkoutCalendarIds(){
+    try{
+      const raw = localStorage.getItem(GCAL_WORKOUT_CALENDAR_IDS_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(e){ return []; }
+  }
+  function saveGcalWorkoutCalendarIds(ids){
+    localStorage.setItem(GCAL_WORKOUT_CALENDAR_IDS_KEY, JSON.stringify(ids));
+  }
+  function loadFirebaseConfig(){
+    try{
+      const raw = localStorage.getItem(FIREBASE_CONFIG_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
+  }
+  function saveFirebaseConfig(config){
+    localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(config));
+  }
   function loadWeights(){
     try{
       const raw = localStorage.getItem(WEIGHT_KEY);
@@ -117,11 +226,255 @@
   function saveWeightUnit(unit){
     localStorage.setItem(WEIGHT_UNIT_KEY, unit);
   }
+  function loadWeightGoal(){
+    const raw = num(localStorage.getItem(WEIGHT_GOAL_KEY));
+    return raw > 0 ? raw : null;
+  }
+  function saveWeightGoal(kg){
+    if(kg > 0) localStorage.setItem(WEIGHT_GOAL_KEY, String(kg));
+    else localStorage.removeItem(WEIGHT_GOAL_KEY);
+  }
   function loadTheme(){
     return localStorage.getItem(THEME_KEY) || "dark";
   }
   function saveTheme(theme){
     localStorage.setItem(THEME_KEY, theme);
+  }
+  function loadWater(){
+    try{
+      const raw = localStorage.getItem(WATER_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWater(map){
+    localStorage.setItem(WATER_KEY, JSON.stringify(map));
+  }
+  function loadWaterGoal(){
+    const raw = num(localStorage.getItem(WATER_GOAL_KEY));
+    return raw > 0 ? raw : 2000;
+  }
+  function saveWaterGoal(ml){
+    localStorage.setItem(WATER_GOAL_KEY, String(ml));
+  }
+  function loadTemplates(){
+    try{
+      const raw = localStorage.getItem(TEMPLATES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveTemplates(list){
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(list));
+  }
+  function loadWeekdayGoals(){
+    try{
+      const raw = localStorage.getItem(WEEKDAY_GOALS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWeekdayGoals(map){
+    localStorage.setItem(WEEKDAY_GOALS_KEY, JSON.stringify(map));
+  }
+  function getGoalsForDate(dateStr){
+    const dow = new Date(dateStr + "T00:00:00").getDay();
+    const overrides = loadWeekdayGoals();
+    return overrides[dow] || loadGoals();
+  }
+  function loadWorkoutPlan(){
+    try{
+      const raw = localStorage.getItem(WORKOUT_PLAN_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWorkoutPlan(map){
+    localStorage.setItem(WORKOUT_PLAN_KEY, JSON.stringify(map));
+  }
+  function loadWorkoutSegmentDone(){
+    try{
+      const raw = localStorage.getItem(WORKOUT_SEGMENT_DONE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveWorkoutSegmentDone(map){
+    localStorage.setItem(WORKOUT_SEGMENT_DONE_KEY, JSON.stringify(map));
+  }
+  function splitWorkoutLabel(label){
+    return label.split(" + ").map(s => s.trim()).filter(Boolean);
+  }
+  function loadDayNotes(){
+    try{
+      const raw = localStorage.getItem(DAY_NOTES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveDayNotes(map){
+    localStorage.setItem(DAY_NOTES_KEY, JSON.stringify(map));
+  }
+  function loadTodos(){
+    try{
+      const raw = localStorage.getItem(TODOS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveTodos(map){
+    localStorage.setItem(TODOS_KEY, JSON.stringify(map));
+  }
+  function loadCalEventDone(){
+    try{
+      const raw = localStorage.getItem(CAL_EVENT_DONE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveCalEventDone(map){
+    localStorage.setItem(CAL_EVENT_DONE_KEY, JSON.stringify(map));
+  }
+  function loadGymLog(){
+    try{
+      const raw = localStorage.getItem(GYM_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveGymLog(map){
+    localStorage.setItem(GYM_LOG_KEY, JSON.stringify(map));
+  }
+  function loadWorkoutRoutines(){
+    try{
+      const raw = localStorage.getItem(WORKOUT_ROUTINES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveWorkoutRoutines(list){
+    localStorage.setItem(WORKOUT_ROUTINES_KEY, JSON.stringify(list));
+  }
+  function loadReminders(){
+    try{
+      const raw = localStorage.getItem(REMINDERS_KEY);
+      return raw ? { ...DEFAULT_REMINDERS, ...JSON.parse(raw) } : { ...DEFAULT_REMINDERS };
+    }catch(e){ return { ...DEFAULT_REMINDERS }; }
+  }
+  function saveReminders(r){
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify(r));
+  }
+  function loadNotifiedLog(){
+    try{
+      const raw = localStorage.getItem(NOTIFIED_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveNotifiedLog(log){
+    const today = todayStr();
+    const pruned = {};
+    Object.keys(log).forEach(k => { if(k.endsWith(":" + today)) pruned[k] = log[k]; });
+    localStorage.setItem(NOTIFIED_LOG_KEY, JSON.stringify(pruned));
+  }
+  function maybeNotify(key, dateStr, title, body){
+    if(!("Notification" in window) || Notification.permission !== "granted") return;
+    const log = loadNotifiedLog();
+    const logKey = key + ":" + dateStr;
+    if(log[logKey]) return;
+    try{ new Notification(title, { body, icon: "icons/icon-192.png" }); }catch(e){ return; }
+    log[logKey] = true;
+    saveNotifiedLog(log);
+  }
+  function checkReminders(){
+    const r = loadReminders();
+    const today = todayStr();
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const banner = document.getElementById("reminderBanner");
+    let message = null;
+
+    if(r.waterEnabled){
+      const [h, m] = r.waterTime.split(":").map(Number);
+      if(currentMinutes >= h * 60 + m){
+        const ml = loadWater()[today] || 0;
+        const goal = loadWaterGoal();
+        if(ml < goal * 0.5){
+          message = "💧 You're behind on water today — " + ml + " / " + goal + " ml so far.";
+          maybeNotify("water", today, "Water reminder", message);
+        }
+      }
+    }
+    if(!message && r.mealEnabled){
+      const [h, m] = r.mealTime.split(":").map(Number);
+      if(currentMinutes >= h * 60 + m){
+        if(entriesForDate(today).length === 0){
+          message = "🍽️ Nothing logged yet today.";
+          maybeNotify("meal", today, "Log your food", message);
+        }
+      }
+    }
+    if(!message && r.workoutEnabled){
+      const entry = loadWorkoutPlan()[today];
+      if(entry && entry.label && !entry.done && !NON_WORKOUT_LABELS.includes(entry.label.trim().toLowerCase())){
+        message = "🏋️ Today's planned workout (" + entry.label + ") isn't marked done yet.";
+        maybeNotify("workout", today, "Workout reminder", message);
+      }
+    }
+
+    if(!banner) return;
+    if(message){
+      banner.textContent = message;
+      banner.style.display = "block";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  // ---------- reminders sheet ----------
+  const remindersOverlay = document.getElementById("remindersOverlay");
+
+  function openRemindersSheet(){
+    const r = loadReminders();
+    document.getElementById("remWaterEnabled").checked = r.waterEnabled;
+    document.getElementById("remWaterTime").value = r.waterTime;
+    document.getElementById("remMealEnabled").checked = r.mealEnabled;
+    document.getElementById("remMealTime").value = r.mealTime;
+    document.getElementById("remWorkoutEnabled").checked = r.workoutEnabled;
+    updateNotifPermNote();
+    remindersOverlay.classList.add("open");
+  }
+  function closeRemindersSheet(){
+    remindersOverlay.classList.remove("open");
+  }
+  function updateNotifPermNote(){
+    const btn = document.getElementById("remEnableNotifsBtn");
+    if(!("Notification" in window)){
+      btn.textContent = "Notifications not supported here";
+      btn.disabled = true;
+      return;
+    }
+    if(Notification.permission === "granted"){
+      btn.textContent = "Notifications enabled ✓";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "Enable notifications";
+      btn.disabled = false;
+    }
+  }
+  function requestNotificationPermission(){
+    if(!("Notification" in window)) return;
+    Notification.requestPermission().then(updateNotifPermNote);
+  }
+  function saveRemindersFromForm(){
+    saveReminders({
+      waterEnabled: document.getElementById("remWaterEnabled").checked,
+      waterTime: document.getElementById("remWaterTime").value || "18:00",
+      mealEnabled: document.getElementById("remMealEnabled").checked,
+      mealTime: document.getElementById("remMealTime").value || "20:00",
+      workoutEnabled: document.getElementById("remWorkoutEnabled").checked
+    });
+    closeRemindersSheet();
+    checkReminders();
+  }
+
+  function currentWeekDates(refDateStr){
+    const ref = refDateStr || todayStr();
+    const dow = new Date(ref + "T00:00:00").getDay();
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const monday = addDays(ref, mondayOffset);
+    const dates = [];
+    for(let i = 0; i < 7; i++) dates.push(addDays(monday, i));
+    return dates;
   }
   function applyTheme(theme){
     document.documentElement.setAttribute("data-theme", theme);
@@ -156,6 +509,16 @@
     if(dateStr === y) return "Yesterday";
     const d = new Date(dateStr + "T00:00:00");
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  function formatDateNavLabel(dateStr){
+    const t = todayStr();
+    const y = addDays(t, -1);
+    if(dateStr === t) return "Today";
+    if(dateStr === y) return "Yesterday";
+    const d = new Date(dateStr + "T00:00:00");
+    const weekday = d.toLocaleDateString(undefined, { weekday: "short" });
+    const month = d.toLocaleDateString(undefined, { month: "short" });
+    return weekday + " " + d.getDate() + " " + month;
   }
   function uid(){
     return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
@@ -192,23 +555,1026 @@
       acc.protein += num(e.protein);
       acc.carbs += num(e.carbs);
       acc.fat += num(e.fat);
+      acc.fiber += num(e.fiber);
+      acc.sugar += num(e.sugar);
+      acc.sodium += num(e.sodium);
+      acc.caffeine += num(e.caffeine);
+      acc.alcohol += num(e.alcohol);
       return acc;
-    }, { calories:0, protein:0, carbs:0, fat:0 });
+    }, { calories:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0, sodium:0, caffeine:0, alcohol:0 });
   }
 
   function render(){
-    document.getElementById("dateLabel").textContent = formatDateLabel(currentDate);
+    document.getElementById("dateLabel").textContent = formatDateNavLabel(currentDate);
     const entries = entriesForDate(currentDate);
-    const goals = loadGoals();
+    const goals = getGoalsForDate(currentDate);
     const totals = totalsForEntries(entries);
 
     renderSummary(totals, goals);
     renderMeals(entries);
     renderBurnedCard(totals);
     renderWeightCard();
+    renderWaterCard();
+    renderWorkoutCard();
     renderActivityCard();
-    renderCalendarCard();
+    renderMicroCard(totals);
+    renderNotesCard();
+    renderTodoCard();
+    refreshTodoCalendarCache();
+    renderGymLogSummary();
     renderInsight(totals, goals);
+    scheduleCloudSync();
+    checkReminders();
+  }
+
+  function renderMicroCard(totals){
+    const fiberEl = document.getElementById("fiberVal");
+    const sugarEl = document.getElementById("sugarVal");
+    const sodiumEl = document.getElementById("sodiumVal");
+    fiberEl.textContent = Math.round(totals.fiber) + "g";
+    fiberEl.className = "micro-value mono" + (totals.fiber >= FIBER_GOAL_G ? " good" : "");
+    sugarEl.textContent = Math.round(totals.sugar) + "g";
+    sugarEl.className = "micro-value mono" + (totals.sugar > SUGAR_LIMIT_G ? " warn" : "");
+    sodiumEl.textContent = Math.round(totals.sodium) + "mg";
+    sodiumEl.className = "micro-value mono" + (totals.sodium > SODIUM_LIMIT_MG ? " warn" : "");
+
+    const caffeineEl = document.getElementById("caffeineVal");
+    const alcoholEl = document.getElementById("alcoholVal");
+    caffeineEl.textContent = Math.round(totals.caffeine) + "mg";
+    caffeineEl.className = "micro-value mono" + (totals.caffeine > CAFFEINE_LIMIT_MG ? " warn" : "");
+    alcoholEl.textContent = Math.round(totals.alcohol * 10) / 10 + "u";
+    alcoholEl.className = "micro-value mono" + (totals.alcohol > ALCOHOL_DAILY_WARN_UNITS ? " warn" : "");
+  }
+
+  function renderWaterCard(){
+    const ml = loadWater()[currentDate] || 0;
+    const goal = loadWaterGoal();
+    document.getElementById("waterAmountNum").textContent = ml + " / " + goal + " ml";
+    const pct = goal > 0 ? Math.min((ml / goal) * 100, 100) : 0;
+    document.getElementById("waterBar").style.width = pct + "%";
+  }
+
+  function addWater(deltaMl){
+    const map = loadWater();
+    const cur = map[currentDate] || 0;
+    map[currentDate] = Math.max(cur + deltaMl, 0);
+    saveWater(map);
+    renderWaterCard();
+  }
+
+  function resetWaterToday(){
+    if(!confirm("Reset today's water to 0?")) return;
+    const map = loadWater();
+    map[currentDate] = 0;
+    saveWater(map);
+    renderWaterCard();
+  }
+
+  function promptWaterGoal(){
+    const input = prompt("Daily water goal (ml):", String(loadWaterGoal()));
+    if(input == null) return;
+    const val = num(input);
+    if(val > 0){
+      saveWaterGoal(Math.round(val));
+      renderWaterCard();
+    }
+  }
+
+  const WORKOUT_WINDOW_START_HOUR = 6;
+  const WORKOUT_WINDOW_END_HOUR = 21;
+  const MIN_WORKOUT_GAP_MINUTES = 30;
+
+  function formatTimeShort(d){
+    return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function findBestWorkoutWindow(events, dateStr){
+    const dayStart = new Date(dateStr + "T00:00:00");
+    dayStart.setHours(WORKOUT_WINDOW_START_HOUR, 0, 0, 0);
+    const dayEnd = new Date(dateStr + "T00:00:00");
+    dayEnd.setHours(WORKOUT_WINDOW_END_HOUR, 0, 0, 0);
+
+    const busy = events
+      .filter(ev => ev.start && ev.start.dateTime && ev.end && ev.end.dateTime)
+      .map(ev => ({ start: new Date(ev.start.dateTime), end: new Date(ev.end.dateTime) }))
+      .filter(b => b.end > dayStart && b.start < dayEnd)
+      .map(b => ({
+        start: b.start < dayStart ? dayStart : b.start,
+        end: b.end > dayEnd ? dayEnd : b.end
+      }))
+      .sort((a, b) => a.start - b.start);
+
+    const merged = [];
+    busy.forEach(b => {
+      const last = merged[merged.length - 1];
+      if(last && b.start <= last.end){
+        if(b.end > last.end) last.end = b.end;
+      } else {
+        merged.push({ start: b.start, end: b.end });
+      }
+    });
+
+    const gaps = [];
+    let cursor = dayStart;
+    merged.forEach(b => {
+      if(b.start > cursor) gaps.push({ start: cursor, end: b.start });
+      if(b.end > cursor) cursor = b.end;
+    });
+    if(cursor < dayEnd) gaps.push({ start: cursor, end: dayEnd });
+
+    if(gaps.length === 0) return null;
+    const best = gaps.reduce((a, b) => ((b.end - b.start) > (a.end - a.start) ? b : a));
+    const minutes = (best.end - best.start) / 60000;
+    return minutes >= MIN_WORKOUT_GAP_MINUTES ? best : null;
+  }
+
+  function renderNotesCard(){
+    document.getElementById("dayNotesInput").value = loadDayNotes()[currentDate] || "";
+  }
+
+  function saveDayNote(){
+    const notes = loadDayNotes();
+    const val = document.getElementById("dayNotesInput").value;
+    if(val.trim()){
+      notes[currentDate] = val;
+    } else {
+      delete notes[currentDate];
+    }
+    saveDayNotes(notes);
+  }
+
+  // ---------- weekly to-do list ----------
+  function dayHasWorkout(plan, dateStr){
+    const entry = plan[dateStr];
+    return entry && entry.label && !NON_WORKOUT_LABELS.includes(entry.label.trim().toLowerCase());
+  }
+
+  function renderTodoCard(){
+    const todos = loadTodos();
+    const plan = loadWorkoutPlan();
+    const dates = currentWeekDates(currentDate);
+
+    const strip = document.getElementById("todoWeekStrip");
+    strip.innerHTML = "";
+    dates.forEach((d, idx) => {
+      const list = todos[d] || [];
+      const hasWorkout = dayHasWorkout(plan, d);
+      const workoutSegments = hasWorkout ? splitWorkoutLabel(plan[d].label) : [];
+      const totalItems = list.length + workoutSegments.length;
+      const allDone = totalItems > 0 &&
+        list.every(t => t.done) && (!hasWorkout || plan[d].done);
+      let cls = "workout-day-pill";
+      if(d === currentDate) cls += " today";
+      if(totalItems > 0) cls += " planned";
+      if(allDone) cls += " done";
+      const pill = document.createElement("div");
+      pill.className = cls;
+      pill.textContent = WORKOUT_DAY_ABBRS[idx];
+      pill.title = totalItems > 0
+        ? totalItems + " item" + (totalItems === 1 ? "" : "s") + (allDone ? " (all done)" : "")
+        : "Nothing planned";
+      strip.appendChild(pill);
+    });
+
+    const list = todos[currentDate] || [];
+    const container = document.getElementById("todoList");
+    container.innerHTML = "";
+
+    const hasWorkout = dayHasWorkout(plan, currentDate);
+    if(hasWorkout){
+      const entry = plan[currentDate];
+      const segments = splitWorkoutLabel(entry.label);
+      if(segments.length > 1){
+        const segMap = loadWorkoutSegmentDone();
+        segments.forEach((seg, idx) => {
+          const done = !!segMap[currentDate + "|" + idx];
+          const row = document.createElement("div");
+          row.className = "todo-row" + (done ? " done" : "");
+          row.innerHTML = `
+            <label class="todo-check">
+              <input type="checkbox" class="todo-check-input" ${done ? "checked" : ""}>
+              <span class="todo-text">🏋️ ${escapeHtml(seg)}</span>
+            </label>
+          `;
+          row.querySelector(".todo-check-input").addEventListener("change", () => toggleWorkoutSegmentDone(idx, segments.length));
+          container.appendChild(row);
+        });
+      } else {
+        const row = document.createElement("div");
+        row.className = "todo-row" + (entry.done ? " done" : "");
+        row.innerHTML = `
+          <label class="todo-check">
+            <input type="checkbox" class="todo-check-input">
+            <span class="todo-text">🏋️ ${escapeHtml(entry.label)}</span>
+          </label>
+        `;
+        row.querySelector(".todo-check-input").checked = !!entry.done;
+        row.querySelector(".todo-check-input").addEventListener("change", toggleWorkoutDone);
+        container.appendChild(row);
+      }
+    }
+
+    const workoutSegmentNames = hasWorkout ? splitWorkoutLabel(plan[currentDate].label) : [];
+    const calEvents = (todoCalendarCache.date === currentDate)
+      ? todoCalendarCache.events.filter(ev => !workoutSegmentNames.includes(ev.summary || ""))
+      : [];
+    if(calEvents.length > 0){
+      const doneMap = loadCalEventDone();
+      calEvents.forEach(ev => {
+        const key = currentDate + "|" + ev.id;
+        const row = document.createElement("div");
+        row.className = "todo-row" + (doneMap[key] ? " done" : "");
+        row.innerHTML = `
+          <label class="todo-check">
+            <input type="checkbox" class="todo-check-input" ${doneMap[key] ? "checked" : ""}>
+            <span class="todo-text">📅 ${escapeHtml(eventTimeLabel(ev))} — ${escapeHtml(ev.summary || "(untitled)")}</span>
+          </label>
+        `;
+        row.querySelector(".todo-check-input").addEventListener("change", () => toggleCalEventDone(key));
+        container.appendChild(row);
+      });
+    }
+
+    if(list.length === 0 && !hasWorkout && calEvents.length === 0){
+      container.innerHTML = '<div class="garmin-history-empty">Nothing planned for ' + formatDateLabel(currentDate) + '.</div>';
+      return;
+    }
+    list.forEach(t => {
+      const row = document.createElement("div");
+      row.className = "todo-row" + (t.done ? " done" : "");
+      row.innerHTML = `
+        <label class="todo-check">
+          <input type="checkbox" class="todo-check-input" ${t.done ? "checked" : ""}>
+          <span class="todo-text">${escapeHtml(t.text)}</span>
+        </label>
+        <button type="button" class="icon-btn danger todo-remove-btn">✕</button>
+      `;
+      row.querySelector(".todo-check-input").addEventListener("change", () => toggleTodo(t.id));
+      row.querySelector(".todo-remove-btn").addEventListener("click", () => removeTodo(t.id));
+      container.appendChild(row);
+    });
+  }
+
+  function addTodo(text){
+    const trimmed = text.trim();
+    if(!trimmed) return;
+    const todos = loadTodos();
+    const list = todos[currentDate] || [];
+    list.push({ id: uid(), text: trimmed, done: false });
+    todos[currentDate] = list;
+    saveTodos(todos);
+    renderTodoCard();
+  }
+
+  function toggleTodo(id){
+    const todos = loadTodos();
+    const list = todos[currentDate] || [];
+    const t = list.find(x => x.id === id);
+    if(!t) return;
+    t.done = !t.done;
+    saveTodos(todos);
+    renderTodoCard();
+  }
+
+  function removeTodo(id){
+    const todos = loadTodos();
+    const list = (todos[currentDate] || []).filter(x => x.id !== id);
+    todos[currentDate] = list;
+    saveTodos(todos);
+    renderTodoCard();
+  }
+
+  function toggleCalEventDone(key){
+    const map = loadCalEventDone();
+    map[key] = !map[key];
+    saveCalEventDone(map);
+    renderTodoCard();
+  }
+
+  // ---------- gym log ----------
+  const EXERCISE_LIBRARY = [
+    "Shoulder Press", "Hammer Curls", "Bicep Curls", "Seated Rows", "Tricep Pushdown",
+    "Flyes", "Split Squats", "Goblet Squats", "Face Pulls", "Straight-Arm Pulldowns",
+    "Lat Extensions", "Hip Thrusts", "Leg Press", "Leg Curls", "Leg Extensions",
+    "RDLs (Romanian Deadlifts)", "Bench Press", "Deadlift", "Squat", "Pull-Ups",
+    "Push-Ups", "Lat Pulldown", "Lunges", "Plank", "Overhead Press", "Bent-Over Rows"
+  ];
+
+  const gymLogOverlay = document.getElementById("gymLogOverlay");
+
+  function renderGymExercisePicker(){
+    const names = new Set(EXERCISE_LIBRARY);
+    getGymExerciseNames().forEach(n => names.add(n));
+    const sorted = Array.from(names).sort((a, b) => a.localeCompare(b));
+
+    const datalist = document.getElementById("gymExerciseDatalist");
+    datalist.innerHTML = sorted.map(n => '<option value="' + escapeHtml(n) + '"></option>').join("");
+
+    const library = document.getElementById("gymExerciseLibrary");
+    library.innerHTML = "";
+    sorted.forEach(name => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "gym-exercise-chip";
+      chip.textContent = name;
+      chip.addEventListener("click", () => addGymExercise(name));
+      library.appendChild(chip);
+    });
+  }
+
+  function openGymLogSheet(){
+    renderGymLogSheet();
+    gymLogOverlay.classList.add("open");
+  }
+  function closeGymLogSheet(){
+    gymLogOverlay.classList.remove("open");
+  }
+
+  function addGymExercise(name){
+    const trimmed = name.trim();
+    if(!trimmed) return;
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    list.push({ id: uid(), name: trimmed, sets: [] });
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function addGymSet(exId, reps, weight){
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    const ex = list.find(x => x.id === exId);
+    if(!ex) return;
+    ex.sets.push({ reps, weight });
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function removeGymSet(exId, setIdx){
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    const ex = list.find(x => x.id === exId);
+    if(!ex) return;
+    ex.sets.splice(setIdx, 1);
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function removeGymExercise(exId){
+    const log = loadGymLog();
+    let list = log[currentDate] || [];
+    list = list.filter(x => x.id !== exId);
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function getExercisePR(exerciseName){
+    const log = loadGymLog();
+    let max = 0;
+    Object.values(log).forEach(list => {
+      list.forEach(ex => {
+        if(ex.name !== exerciseName) return;
+        ex.sets.forEach(s => { if(s.weight > max) max = s.weight; });
+      });
+    });
+    return max;
+  }
+
+  function renderGymLogSheet(){
+    document.getElementById("gymLogTitle").textContent = "Log workout — " + formatDateLabel(currentDate);
+    renderGymExercisePicker();
+    renderWorkoutRoutines();
+    const unit = loadWeightUnit();
+    const list = loadGymLog()[currentDate] || [];
+    const container = document.getElementById("gymLogExerciseList");
+    if(list.length === 0){
+      container.innerHTML = '<div class="garmin-history-empty">No exercises logged yet — add one below.</div>';
+      return;
+    }
+    container.innerHTML = list.map(ex => {
+      const pr = getExercisePR(ex.name);
+      return `
+      <div class="gym-exercise-block">
+        <div class="gym-exercise-head">
+          <div class="gym-exercise-name">${escapeHtml(ex.name)}</div>
+          <button type="button" class="icon-btn danger gym-remove-exercise" data-ex-id="${ex.id}">✕</button>
+        </div>
+        ${ex.sets.length === 0
+          ? '<div class="gym-set-row">No sets yet</div>'
+          : ex.sets.map((s, i) => `
+            <div class="gym-set-row">
+              <span>Set ${i + 1}: ${s.reps} × ${s.weight}${unit}${(pr > 0 && s.weight === pr) ? " 🏆" : ""}</span>
+              <button type="button" class="icon-btn danger gym-remove-set" data-ex-id="${ex.id}" data-set-idx="${i}">✕</button>
+            </div>
+          `).join("")}
+        <div class="gym-add-set-row">
+          <input type="number" inputmode="decimal" class="mono-input gym-set-reps" placeholder="Reps">
+          <input type="number" inputmode="decimal" class="mono-input gym-set-weight" placeholder="${unit}">
+          <button type="button" class="btn btn-secondary gym-add-set" data-ex-id="${ex.id}">+ Set</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  function renderGymLogSummary(){
+    const list = loadGymLog()[currentDate] || [];
+    const el = document.getElementById("gymLogSummary");
+    if(list.length === 0){
+      el.style.display = "none";
+      el.innerHTML = "";
+      return;
+    }
+    const unit = loadWeightUnit();
+    el.style.display = "block";
+    el.innerHTML = list.map(ex => {
+      const pr = getExercisePR(ex.name);
+      const hasPR = pr > 0 && ex.sets.some(s => s.weight === pr);
+      const setsText = ex.sets.length > 0
+        ? ex.sets.map(s => s.reps + "×" + s.weight + unit).join(", ")
+        : "no sets logged";
+      return '<div class="gym-summary-row"><strong>' + escapeHtml(ex.name) + (hasPR ? " 🏆" : "") +
+        '</strong>: ' + escapeHtml(setsText) + '</div>';
+    }).join("");
+  }
+
+  function renderWorkoutRoutines(){
+    const routines = loadWorkoutRoutines();
+    const todayList = loadGymLog()[currentDate] || [];
+    document.getElementById("gymSaveRoutineBtn").style.display = todayList.length > 0 ? "block" : "none";
+
+    const container = document.getElementById("gymRoutinesList");
+    if(routines.length === 0){
+      container.innerHTML = '<div class="garmin-history-empty">No saved routines yet. Log some exercises and save them as a routine.</div>';
+      return;
+    }
+    container.innerHTML = "";
+    routines.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "fav-list-row";
+      row.innerHTML = `
+        <div class="fav-list-info">
+          <div class="fav-list-name">${escapeHtml(r.name)}</div>
+          <div class="fav-list-meta">${r.exercises.length} exercise${r.exercises.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="fav-list-actions">
+          <button type="button" class="btn btn-secondary gym-routine-load-btn">Load</button>
+          <button type="button" class="icon-btn danger gym-routine-delete-btn">✕</button>
+        </div>
+      `;
+      row.querySelector(".gym-routine-load-btn").addEventListener("click", () => loadWorkoutRoutineIntoDay(r.id));
+      row.querySelector(".gym-routine-delete-btn").addEventListener("click", () => deleteWorkoutRoutine(r.id));
+      container.appendChild(row);
+    });
+  }
+
+  function saveTodayAsRoutine(){
+    const todayList = loadGymLog()[currentDate] || [];
+    if(todayList.length === 0) return;
+    const name = prompt("Name this routine:", "");
+    if(!name || !name.trim()) return;
+    const routines = loadWorkoutRoutines();
+    routines.push({ id: uid(), name: name.trim(), exercises: todayList.map(ex => ex.name) });
+    saveWorkoutRoutines(routines);
+    renderWorkoutRoutines();
+  }
+
+  function loadWorkoutRoutineIntoDay(routineId){
+    const routine = loadWorkoutRoutines().find(r => r.id === routineId);
+    if(!routine) return;
+    const log = loadGymLog();
+    const list = log[currentDate] || [];
+    routine.exercises.forEach(name => {
+      list.push({ id: uid(), name, sets: [] });
+    });
+    log[currentDate] = list;
+    saveGymLog(log);
+    renderGymLogSheet();
+    renderGymLogSummary();
+  }
+
+  function deleteWorkoutRoutine(routineId){
+    if(!confirm("Delete this routine?")) return;
+    const routines = loadWorkoutRoutines().filter(r => r.id !== routineId);
+    saveWorkoutRoutines(routines);
+    renderWorkoutRoutines();
+  }
+
+  async function renderWorkoutCard(){
+    const plan = loadWorkoutPlan();
+    const viewedDate = currentDate;
+    const dates = currentWeekDates(viewedDate);
+
+    const strip = document.getElementById("workoutWeekStrip");
+    strip.innerHTML = "";
+    dates.forEach((d, idx) => {
+      const entry = plan[d];
+      let cls = "workout-day-pill";
+      if(d === viewedDate) cls += " today";
+      if(entry && entry.label && !NON_WORKOUT_LABELS.includes(entry.label.trim().toLowerCase())) cls += " planned";
+      if(entry && entry.done) cls += " done";
+      const pill = document.createElement("div");
+      pill.className = cls;
+      pill.textContent = WORKOUT_DAY_ABBRS[idx];
+      pill.title = entry && entry.label ? entry.label + (entry.done ? " (done)" : "") : "Nothing planned";
+      strip.appendChild(pill);
+    });
+
+    const viewedEntry = plan[viewedDate];
+    const dayLabel = formatDateLabel(viewedDate);
+    const label = document.getElementById("workoutTodayLabel");
+    label.textContent = viewedEntry && viewedEntry.label
+      ? dayLabel + ": " + viewedEntry.label + (viewedEntry.done ? " ✓" : "")
+      : "Nothing planned for " + dayLabel + ".";
+
+    const bestTimeEl = document.getElementById("workoutBestTime");
+    bestTimeEl.textContent = "";
+    const hasWorkoutPlanned = viewedEntry && viewedEntry.label &&
+      !NON_WORKOUT_LABELS.includes(viewedEntry.label.trim().toLowerCase());
+
+    const doneBtn = document.getElementById("workoutDoneBtn");
+    if(hasWorkoutPlanned){
+      doneBtn.style.display = "block";
+      doneBtn.classList.toggle("is-done", !!viewedEntry.done);
+      doneBtn.textContent = viewedEntry.done ? "✓ Completed" : "Mark as done";
+    } else {
+      doneBtn.style.display = "none";
+    }
+
+    if(!hasWorkoutPlanned || !gcalAccessToken) return;
+    const events = await fetchCalendarEventsForDate(viewedDate);
+    if(viewedDate !== currentDate) return; // user navigated away while this was in flight
+    if(events === null) return;
+    const window = findBestWorkoutWindow(events, viewedDate);
+    bestTimeEl.textContent = window
+      ? "🕐 Best window " + dayLabel + ": " + formatTimeShort(window.start) + " – " + formatTimeShort(window.end)
+      : "🕐 " + dayLabel + " looks packed — no clear " + MIN_WORKOUT_GAP_MINUTES + "+ min opening between " +
+        WORKOUT_WINDOW_START_HOUR + "am–" + (WORKOUT_WINDOW_END_HOUR - 12) + "pm.";
+  }
+
+  function toggleWorkoutDone(){
+    const plan = loadWorkoutPlan();
+    const entry = plan[currentDate];
+    if(!entry || !entry.label) return;
+    entry.done = !entry.done;
+    saveWorkoutPlan(plan);
+
+    const segments = splitWorkoutLabel(entry.label);
+    if(segments.length > 1){
+      const segMap = loadWorkoutSegmentDone();
+      segments.forEach((s, idx) => { segMap[currentDate + "|" + idx] = entry.done; });
+      saveWorkoutSegmentDone(segMap);
+    }
+
+    renderWorkoutCard();
+    renderTodoCard();
+  }
+
+  function toggleWorkoutSegmentDone(idx, totalSegments){
+    const segMap = loadWorkoutSegmentDone();
+    const key = currentDate + "|" + idx;
+    segMap[key] = !segMap[key];
+    saveWorkoutSegmentDone(segMap);
+
+    const allDone = Array.from({ length: totalSegments }, (_, i) => !!segMap[currentDate + "|" + i]).every(Boolean);
+    const plan = loadWorkoutPlan();
+    if(plan[currentDate]){
+      plan[currentDate].done = allDone;
+      saveWorkoutPlan(plan);
+    }
+
+    renderWorkoutCard();
+    renderTodoCard();
+  }
+
+  // ---------- workout plan sheet ----------
+  const workoutPlanOverlay = document.getElementById("workoutPlanOverlay");
+
+  function openWorkoutPlanSheet(){
+    renderWorkoutPlanForm();
+    workoutPlanOverlay.classList.add("open");
+  }
+  function closeWorkoutPlanSheet(){
+    workoutPlanOverlay.classList.remove("open");
+  }
+
+  function renderWorkoutPlanForm(){
+    const plan = loadWorkoutPlan();
+    const dates = currentWeekDates();
+    const today = todayStr();
+    const container = document.getElementById("workoutPlanList");
+    container.innerHTML = "";
+
+    dates.forEach((d, idx) => {
+      const entry = plan[d] || { label: "", done: false };
+      const dLabel = new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const row = document.createElement("div");
+      row.className = "workout-plan-row" + (d === today ? " today" : "");
+      row.innerHTML = `
+        <div class="workout-plan-head">
+          <span class="workout-plan-day">${WORKOUT_DAY_ABBRS[idx]} · ${dLabel}</span>
+          <label class="workout-plan-done">
+            <input type="checkbox" class="workout-done-toggle" data-date="${d}" ${entry.done ? "checked" : ""}>
+            Done
+          </label>
+        </div>
+        <input type="text" class="mono-input workout-label-input" data-date="${d}" placeholder="e.g. Leg day, Rest, 5k run" value="${escapeHtml(entry.label)}">
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function saveWorkoutPlanFromForm(){
+    const plan = loadWorkoutPlan();
+    document.querySelectorAll(".workout-label-input").forEach(input => {
+      const d = input.dataset.date;
+      const label = input.value.trim();
+      const doneToggle = document.querySelector('.workout-done-toggle[data-date="' + d + '"]');
+      const done = doneToggle ? doneToggle.checked : false;
+      if(!label && !done){
+        delete plan[d];
+      } else {
+        plan[d] = { label, done };
+      }
+    });
+    saveWorkoutPlan(plan);
+    closeWorkoutPlanSheet();
+    renderWorkoutCard();
+  }
+
+  // ---------- workout recommendations sheet ----------
+  const workoutRecOverlay = document.getElementById("workoutRecOverlay");
+
+  function openWorkoutRecSheet(){
+    document.getElementById("workoutRecForm").style.display = "block";
+    document.getElementById("workoutRecResults").style.display = "none";
+    workoutRecOverlay.classList.add("open");
+  }
+  function closeWorkoutRecSheet(){
+    workoutRecOverlay.classList.remove("open");
+  }
+  function backToWorkoutRecForm(){
+    document.getElementById("workoutRecForm").style.display = "block";
+    document.getElementById("workoutRecResults").style.display = "none";
+  }
+
+  function eventDurationHours(ev){
+    const start = ev.start && ev.start.dateTime ? new Date(ev.start.dateTime) : null;
+    const end = ev.end && ev.end.dateTime ? new Date(ev.end.dateTime) : null;
+    if(start && end){
+      return Math.max((end - start) / 3600000, 0);
+    }
+    return 2; // all-day / date-only event: no time range, so use a flat estimate
+  }
+
+  function isWorkoutEvent(ev){
+    if(ev._calendarId && loadGcalWorkoutCalendarIds().includes(ev._calendarId)) return true;
+    const title = (ev.summary || "").toLowerCase();
+    return WORKOUT_KEYWORDS.some(k => title.includes(k));
+  }
+
+  async function computeWeekBusyness(dates){
+    if(!gcalAccessToken) return null;
+    const results = await Promise.all(dates.map(d => fetchCalendarEventsForDate(d)));
+    if(results.every(r => r === null)) return null;
+    const map = {};
+    dates.forEach((d, i) => {
+      const events = results[i] || [];
+      const workoutEvents = events.filter(isWorkoutEvent);
+      map[d] = {
+        hours: events.reduce((sum, ev) => sum + eventDurationHours(ev), 0),
+        workoutTitle: workoutEvents.length > 0
+          ? workoutEvents.map(ev => ev.summary || "Workout").join(" + ")
+          : null
+      };
+    });
+    return map;
+  }
+
+  async function generateWorkoutRecommendation(){
+    const goal = document.getElementById("recGoalSelect").value;
+    const days = parseInt(document.getElementById("recDaysSelect").value, 10);
+    const template = WORKOUT_TEMPLATES[goal];
+    const dates = currentWeekDates();
+
+    const genBtn = document.getElementById("recGenerateBtn");
+    genBtn.disabled = true;
+    genBtn.textContent = gcalAccessToken ? "Checking your calendar…" : "Generating…";
+
+    const busyness = await computeWeekBusyness(dates);
+
+    const plan = WORKOUT_DAY_ABBRS.map(() => null);
+    const filledIdx = new Set();
+
+    // Lock in days that already have a workout-like event on the calendar — don't suggest over them.
+    if(busyness){
+      dates.forEach((d, idx) => {
+        const info = busyness[d];
+        if(info && info.workoutTitle){
+          plan[idx] = { name: info.workoutTitle, exercises: "Already on your calendar", fromCalendar: true };
+          filledIdx.add(idx);
+        }
+      });
+    }
+
+    const remaining = Math.max(days - filledIdx.size, 0);
+    let candidateIdx;
+    if(busyness){
+      candidateIdx = dates
+        .map((d, idx) => ({ idx, hours: busyness[d].hours }))
+        .filter(x => !filledIdx.has(x.idx))
+        .sort((a, b) => a.hours - b.hours || a.idx - b.idx)
+        .slice(0, remaining)
+        .map(x => x.idx)
+        .sort((a, b) => a - b);
+    } else {
+      candidateIdx = WORKOUT_DAY_SLOTS[days].filter(idx => !filledIdx.has(idx)).slice(0, remaining);
+    }
+
+    let templateCursor = 0;
+    candidateIdx.forEach(idx => {
+      plan[idx] = template[templateCursor % template.length];
+      templateCursor++;
+    });
+    lastWorkoutRecommendation = plan;
+
+    const list = document.getElementById("workoutRecList");
+    list.innerHTML = "";
+    plan.forEach((entry, idx) => {
+      const row = document.createElement("div");
+      row.className = "workout-rec-row";
+      const info = busyness ? busyness[dates[idx]] : null;
+      if(entry && entry.fromCalendar){
+        row.innerHTML = `<div class="workout-rec-day">${WORKOUT_DAY_ABBRS[idx]} — ${escapeHtml(entry.name)} ` +
+          `<span class="workout-rec-busy">(from calendar)</span></div>`;
+      } else {
+        const busyBit = (info && info.hours > 0)
+          ? ` <span class="workout-rec-busy">(${round1(info.hours)}h scheduled)</span>`
+          : "";
+        if(entry){
+          row.innerHTML = `<div class="workout-rec-day">${WORKOUT_DAY_ABBRS[idx]} — ${escapeHtml(entry.name)}${busyBit}</div>` +
+            `<div class="workout-rec-exercises">${escapeHtml(entry.exercises)}</div>`;
+        } else {
+          row.innerHTML = `<div class="workout-rec-day rest">${WORKOUT_DAY_ABBRS[idx]} — Rest${busyBit}</div>`;
+        }
+      }
+      list.appendChild(row);
+    });
+
+    document.getElementById("workoutRecCalNote").style.display = busyness ? "block" : "none";
+    genBtn.disabled = false;
+    genBtn.textContent = "Generate plan";
+    document.getElementById("workoutRecForm").style.display = "none";
+    document.getElementById("workoutRecResults").style.display = "block";
+  }
+
+  function applyWorkoutRecommendation(){
+    if(!lastWorkoutRecommendation) return;
+    const dates = currentWeekDates();
+    const plan = loadWorkoutPlan();
+    dates.forEach((d, idx) => {
+      const entry = lastWorkoutRecommendation[idx];
+      const prevDone = (plan[d] && plan[d].done) || false;
+      plan[d] = entry ? { label: entry.name, done: prevDone } : { label: "Rest", done: prevDone };
+    });
+    saveWorkoutPlan(plan);
+    closeWorkoutRecSheet();
+    closeWorkoutPlanSheet();
+    renderWorkoutCard();
+  }
+
+  // ---------- daily check-in (conversational) ----------
+  const CHECKIN_LEVEL_SCORE = { low: 0, poor: 0, stressed: 0, medium: 1, ok: 1, neutral: 1, high: 2, good: 2 };
+  const CHECKIN_QUESTIONS = [
+    { key: "energy", text: "How's your energy today?", options: [
+      { value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }
+    ]},
+    { key: "sleep", text: "How did you sleep last night?", options: [
+      { value: "poor", label: "Poor" }, { value: "ok", label: "OK" }, { value: "good", label: "Good" }
+    ]},
+    { key: "mood", text: "How's your mood / stress?", options: [
+      { value: "stressed", label: "Stressed" }, { value: "neutral", label: "Neutral" }, { value: "good", label: "Good" }
+    ]},
+    { key: "hunger", text: "Hungry right now?", options: [
+      { value: "none", label: "Not really" }, { value: "some", label: "A little" }, { value: "very", label: "Very" }
+    ]}
+  ];
+  function loadCheckinLog(){
+    try{
+      const raw = localStorage.getItem(CHECKIN_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveCheckinLog(log){
+    const dates = Object.keys(log).sort();
+    while(dates.length > 30){ delete log[dates.shift()]; }
+    localStorage.setItem(CHECKIN_LOG_KEY, JSON.stringify(log));
+  }
+  function seededPick(arr, seed){
+    let hash = 0;
+    for(let i = 0; i < seed.length; i++){ hash = (hash * 31 + seed.charCodeAt(i)) >>> 0; }
+    return arr[hash % arr.length];
+  }
+
+  let checkinStep = 0;
+  let checkinAnswers = {};
+  const savedCheckinToday = loadCheckinLog()[todayStr()];
+  if(savedCheckinToday){
+    checkinAnswers = {
+      energy: savedCheckinToday.energy, sleep: savedCheckinToday.sleep,
+      mood: savedCheckinToday.mood, hunger: savedCheckinToday.hunger
+    };
+    checkinStep = CHECKIN_QUESTIONS.length;
+  }
+
+  function generateCheckinSuggestions(answers){
+    const { energy, sleep, mood, hunger } = answers;
+    const score = CHECKIN_LEVEL_SCORE[energy] + CHECKIN_LEVEL_SCORE[sleep] + CHECKIN_LEVEL_SCORE[mood];
+    const today = todayStr();
+    const seed = today;
+
+    const log = loadCheckinLog();
+    const prev = log[addDays(today, -1)];
+    let trendNote = "";
+    if(prev && prev.energy === "low" && energy === "low"){
+      trendNote = " That's two days of low energy in a row — worth an early night, or if it keeps up, worth looking at iron/B12-rich food.";
+    } else if(prev && prev.mood === "stressed" && mood === "stressed"){
+      trendNote = " Stress two days running now — worth carving out even 10 minutes today that's just for you.";
+    } else if(prev && prev.sleep === "poor" && sleep === "poor"){
+      trendNote = " Second rough night in a row — worth protecting tonight's wind-down more than usual.";
+    }
+
+    const summaryPool = score <= 2
+      ? [
+          "Today looks like a recovery day — lean on rest, hydration, and easy nutrition rather than pushing hard.",
+          "Sounds like a low-key day is in order — prioritise rest and simple, easy meals over anything demanding."
+        ]
+      : score <= 4
+      ? [
+          "You're doing okay. A few deliberate choices — water, a real meal, a short walk — will compound today.",
+          "Middling day, nothing alarming — small consistent choices today will do more than one big effort."
+        ]
+      : [
+          "You're in a good place today — a solid day to tackle a harder workout or get ahead on meal prep if you've got the time.",
+          "Good conditions across the board — a great day to push a bit harder if that's on your plan."
+        ];
+    const summary = seededPick(summaryPool, seed + "summary") + trendNote;
+
+    const goals = getGoalsForDate(today);
+    const totals = totalsForEntries(entriesForDate(today));
+    const calRemaining = Math.round((goals.calories || 0) - totals.calories);
+    const waterMl = loadWater()[today] || 0;
+    const waterGoal = loadWaterGoal();
+    const plan = loadWorkoutPlan()[today];
+    const hasPlannedWorkout = plan && plan.label && !NON_WORKOUT_LABELS.includes(plan.label.trim().toLowerCase());
+
+    const foodTips = [];
+    const drinkTips = [];
+    const exerciseTips = [];
+
+    if(energy === "low"){
+      foodTips.push(seededPick([
+        "Complex carbs + protein — oats, eggs, or a banana with nut butter — to avoid a sugar-crash cycle.",
+        "Go for slow-release energy — porridge or wholegrain toast with eggs — rather than anything sugary that'll dip again."
+      ], seed + "energyfood"));
+      drinkTips.push("Water first — low energy is often mild dehydration in disguise.");
+      exerciseTips.push("Skip anything intense; a 10-15 min walk usually helps more than pushing through a hard session.");
+    }
+    if(sleep === "poor"){
+      foodTips.push("Lean on protein and go easy on heavy or greasy food — harder to digest on little sleep.");
+      drinkTips.push("Ease off caffeine after midday so tonight isn't compounded by today.");
+      exerciseTips.push("Light movement only — yoga or a walk. Recovery matters more than intensity today.");
+    }
+    if(mood === "stressed"){
+      foodTips.push("Magnesium-rich foods — leafy greens, nuts, dark chocolate — are linked to lower stress reactivity.");
+      drinkTips.push(seededPick([
+        "Herbal tea (chamomile, peppermint) over more caffeine, which can amplify anxiety.",
+        "Skip extra caffeine today — it tends to sharpen stress rather than ease it."
+      ], seed + "moodddrink"));
+      exerciseTips.push("A steady walk or stretching session tends to lower cortisol better than high-intensity work right now.");
+    }
+    if(hunger === "very"){
+      if(calRemaining >= 300){
+        foodTips.push("You're genuinely hungry and have ~" + calRemaining + " kcal left today — good time for a real balanced meal (protein + complex carb + veg).");
+      } else if(calRemaining > 0){
+        foodTips.push("You're hungry but only ~" + calRemaining + " kcal left in today's goal — go for something high-volume and low-cal (veg, broth, popcorn) to take the edge off.");
+      } else {
+        foodTips.push("You're hungry but already at today's calorie goal — try water or a low-cal option first before deciding it's genuine hunger.");
+      }
+    }
+    if(energy === "high" && sleep !== "poor" && mood !== "stressed"){
+      exerciseTips.push("Good conditions for a harder session today if one's on your plan.");
+    }
+
+    if(hasPlannedWorkout){
+      if(plan.done){
+        exerciseTips.push('Already logged today\'s "' + plan.label + '" — nothing more needed on that front today.');
+      } else {
+        const advice = (energy === "low" || sleep === "poor")
+          ? "worth scaling it back if it's demanding"
+          : "conditions look fine to go ahead with it";
+        exerciseTips.push('You\'ve got "' + plan.label + '" planned today — ' + advice + '.');
+      }
+    }
+
+    if(waterMl < waterGoal * 0.5){
+      drinkTips.push("Only " + waterMl + " ml logged so far against a " + waterGoal + " ml goal — worth catching up.");
+    } else if(waterMl >= waterGoal){
+      drinkTips.push("Already hit today's water goal — nice.");
+    }
+
+    if(foodTips.length === 0) foodTips.push("Nothing specific stands out — eat to your usual goals today.");
+    if(drinkTips.length === 0) drinkTips.push("Stay on top of your water goal as usual.");
+    if(exerciseTips.length === 0) exerciseTips.push("Whatever's already planned should suit how you're feeling.");
+
+    return {
+      summary,
+      areas: [
+        { label: "Food", tips: foodTips },
+        { label: "Drink", tips: drinkTips },
+        { label: "Exercise", tips: exerciseTips }
+      ]
+    };
+  }
+
+  function renderCheckinChat(){
+    const log = document.getElementById("checkinChatLog");
+    const chips = document.getElementById("checkinChips");
+    if(!log || !chips) return;
+    log.innerHTML = "";
+
+    for(let i = 0; i < checkinStep; i++){
+      const q = CHECKIN_QUESTIONS[i];
+      const opt = q.options.find(o => o.value === checkinAnswers[q.key]);
+      const row = document.createElement("div");
+      row.className = "checkin-msg checkin-msg-done";
+      row.textContent = q.text.replace(/\?$/, "") + ": " + (opt ? opt.label : "");
+      log.appendChild(row);
+    }
+
+    chips.innerHTML = "";
+
+    if(checkinStep < CHECKIN_QUESTIONS.length){
+      const q = CHECKIN_QUESTIONS[checkinStep];
+      const qEl = document.createElement("div");
+      qEl.className = "checkin-msg checkin-msg-bot";
+      qEl.textContent = q.text;
+      log.appendChild(qEl);
+
+      q.options.forEach(o => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "checkin-chip";
+        chip.textContent = o.label;
+        chip.addEventListener("click", () => {
+          checkinAnswers[q.key] = o.value;
+          checkinStep++;
+          if(checkinStep === CHECKIN_QUESTIONS.length){
+            const log = loadCheckinLog();
+            log[todayStr()] = { ...checkinAnswers, ts: Date.now() };
+            saveCheckinLog(log);
+          }
+          renderCheckinChat();
+        });
+        chips.appendChild(chip);
+      });
+    } else {
+      const { summary, areas } = generateCheckinSuggestions(checkinAnswers);
+      const respEl = document.createElement("div");
+      respEl.className = "checkin-msg checkin-msg-bot";
+      respEl.textContent = summary;
+      log.appendChild(respEl);
+
+      areas.forEach(a => {
+        const areaEl = document.createElement("div");
+        areaEl.className = "checkin-msg checkin-msg-bot checkin-msg-area";
+        areaEl.innerHTML = `<strong>${escapeHtml(a.label)}:</strong> ${a.tips.map(escapeHtml).join(" ")}`;
+        log.appendChild(areaEl);
+      });
+
+      const restartChip = document.createElement("button");
+      restartChip.type = "button";
+      restartChip.className = "checkin-chip";
+      restartChip.textContent = "🔄 Start over";
+      restartChip.addEventListener("click", () => {
+        checkinStep = 0;
+        checkinAnswers = {};
+        const log = loadCheckinLog();
+        delete log[todayStr()];
+        saveCheckinLog(log);
+        renderCheckinChat();
+      });
+      chips.appendChild(restartChip);
+    }
+
+    log.scrollTop = log.scrollHeight;
   }
 
   function renderActivityCard(){
@@ -265,9 +1631,10 @@
     document.getElementById("burnedCardNet").textContent = "net " + net + " kcal today";
   }
 
-  function dayHitsGoal(dateStr, goals){
+  function dayHitsGoal(dateStr){
     const totals = totalsForEntries(entriesForDate(dateStr));
     if(totals.calories === 0) return false;
+    const goals = getGoalsForDate(dateStr);
     const burned = loadGarminCalories()[dateStr];
     const net = burned != null ? totals.calories - burned : totals.calories;
     const withinCalories = net >= goals.calories * 0.85 && net <= goals.calories * 1.15;
@@ -275,11 +1642,11 @@
     return withinCalories && hitProtein;
   }
 
-  function computeStreak(goals){
+  function computeStreak(){
     const today = todayStr();
-    let cursor = dayHitsGoal(today, goals) ? today : addDays(today, -1);
+    let cursor = dayHitsGoal(today) ? today : addDays(today, -1);
     let streak = 0;
-    while(dayHitsGoal(cursor, goals)){
+    while(dayHitsGoal(cursor)){
       streak++;
       cursor = addDays(cursor, -1);
     }
@@ -317,7 +1684,7 @@
       msg = "You have about " + remaining + " kcal left today" + burnedNote + ". You're on track.";
     }
 
-    const streak = computeStreak(goals);
+    const streak = computeStreak();
     const streakBit = streak >= 2
       ? '<div class="insight-streak">🔥 ' + streak + '-day streak of hitting your goals</div>'
       : "";
@@ -345,7 +1712,9 @@
   function setBar(key, val, goal){
     document.getElementById(key + "Val").textContent = Math.round(val) + " / " + Math.round(goal) + "g";
     const pct = goal > 0 ? Math.min((val / goal) * 100, 100) : 0;
-    document.getElementById(key + "Bar").style.width = pct + "%";
+    document.getElementById(key + "Pct").textContent = Math.round(pct) + "%";
+    const circumference = 213.6;
+    document.getElementById(key + "Ring").style.strokeDashoffset = String(circumference * (1 - pct / 100));
   }
 
   function renderMeals(entries){
@@ -379,7 +1748,12 @@
 
       const header = document.createElement("div");
       header.className = "meal-header";
-      header.innerHTML = `<h2>${meal.label}</h2><span class="meal-cal">${Math.round(mealCals)} kcal</span>`;
+      header.innerHTML = `<h2>${meal.label}</h2>
+        <div class="meal-header-actions">
+          <span class="meal-cal">${Math.round(mealCals)} kcal</span>
+          <button type="button" class="icon-btn save-template-btn" title="Save as template">💾</button>
+        </div>`;
+      header.querySelector(".save-template-btn").addEventListener("click", () => saveMealAsTemplate(meal.id, meal.label));
       section.appendChild(header);
 
       mealEntries.forEach(e => {
@@ -434,6 +1808,202 @@
     render();
   }
 
+  function saveMealAsTemplate(mealId, mealLabel){
+    const mealEntries = entriesForDate(currentDate).filter(e => e.meal === mealId);
+    if(mealEntries.length === 0) return;
+    const name = prompt("Name this template:", mealLabel);
+    if(!name || !name.trim()) return;
+    const templates = loadTemplates();
+    templates.push({
+      id: uid(),
+      name: name.trim(),
+      items: mealEntries.map(e => ({
+        name: e.name,
+        serving: e.serving,
+        calories: num(e.calories),
+        protein: num(e.protein),
+        carbs: num(e.carbs),
+        fat: num(e.fat)
+      }))
+    });
+    saveTemplates(templates);
+    alert('Saved "' + name.trim() + '" as a template.');
+  }
+
+  // ---------- meal templates sheet ----------
+  const templatesOverlay = document.getElementById("templatesOverlay");
+
+  function openTemplatesSheet(){
+    renderTemplatesList();
+    templatesOverlay.classList.add("open");
+  }
+  function closeTemplatesSheet(){
+    templatesOverlay.classList.remove("open");
+  }
+
+  function renderTemplatesList(){
+    const templates = loadTemplates();
+    const list = document.getElementById("templatesList");
+    list.innerHTML = "";
+
+    if(templates.length === 0){
+      list.innerHTML = '<div class="garmin-history-empty">No templates yet. Save one from the 💾 button on a meal you\'ve logged.</div>';
+      return;
+    }
+
+    templates.forEach(t => {
+      const totalCal = Math.round(t.items.reduce((s, i) => s + num(i.calories), 0));
+      const row = document.createElement("div");
+      row.className = "fav-list-row";
+      row.innerHTML = `
+        <div class="fav-list-info">
+          <div class="fav-list-name">${escapeHtml(t.name)}</div>
+          <div class="fav-list-meta">${t.items.length} item${t.items.length === 1 ? "" : "s"} · ${totalCal} kcal</div>
+        </div>
+        <div class="fav-list-actions">
+          <button type="button" class="btn btn-secondary" data-id="${t.id}" data-action="log">Log</button>
+          <button type="button" class="icon-btn danger" data-id="${t.id}" data-action="del">✕</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll('button[data-action="log"]').forEach(btn => {
+      btn.addEventListener("click", () => logTemplate(btn.dataset.id));
+    });
+    list.querySelectorAll('button[data-action="del"]').forEach(btn => {
+      btn.addEventListener("click", () => {
+        saveTemplates(loadTemplates().filter(t => t.id !== btn.dataset.id));
+        renderTemplatesList();
+      });
+    });
+  }
+
+  function logTemplate(id){
+    const template = loadTemplates().find(t => t.id === id);
+    if(!template) return;
+    const meal = guessMealByTime();
+    const entries = loadEntries();
+    template.items.forEach(item => {
+      entries.push({
+        ...item,
+        id: uid(),
+        meal,
+        date: currentDate,
+        photo: null,
+        createdAt: Date.now()
+      });
+    });
+    saveEntries(entries);
+    closeTemplatesSheet();
+    render();
+  }
+
+  // ---------- food log search / history sheet ----------
+  const historyOverlay = document.getElementById("historyOverlay");
+
+  function openHistorySheet(){
+    document.getElementById("historySearchInput").value = "";
+    renderHistoryResults("");
+    historyOverlay.classList.add("open");
+    setTimeout(() => document.getElementById("historySearchInput").focus(), 50);
+  }
+  function closeHistorySheet(){
+    historyOverlay.classList.remove("open");
+  }
+
+  function renderHistoryResults(query){
+    const q = query.trim().toLowerCase();
+    const list = document.getElementById("historyResults");
+    const summary = document.getElementById("historySummary");
+    list.innerHTML = "";
+
+    if(!q){
+      summary.textContent = "Type a food name to search your full log.";
+      return;
+    }
+
+    const matches = loadEntries()
+      .filter(e => e.name.toLowerCase().includes(q))
+      .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || 0) - (a.createdAt || 0));
+
+    if(matches.length === 0){
+      summary.textContent = "No matches.";
+      return;
+    }
+
+    const avgCal = Math.round(matches.reduce((s, e) => s + num(e.calories), 0) / matches.length);
+    summary.textContent = matches.length + " match" + (matches.length === 1 ? "" : "es") + " · avg " + avgCal + " kcal";
+
+    matches.slice(0, 100).forEach(e => {
+      const row = document.createElement("div");
+      row.className = "garmin-history-row";
+      row.innerHTML = '<span class="garmin-history-date">' + escapeHtml(formatDateLabel(e.date)) + ' · ' + escapeHtml(e.name) + '</span>' +
+        '<span class="garmin-history-cal">' + Math.round(num(e.calories)) + ' kcal</span>';
+      list.appendChild(row);
+    });
+  }
+
+  // ---------- weekday goals sheet ----------
+  const weekdayGoalsOverlay = document.getElementById("weekdayGoalsOverlay");
+
+  function openWeekdayGoalsSheet(){
+    renderWeekdayGoalsForm();
+    weekdayGoalsOverlay.classList.add("open");
+  }
+  function closeWeekdayGoalsSheet(){
+    weekdayGoalsOverlay.classList.remove("open");
+  }
+
+  function renderWeekdayGoalsForm(){
+    const overrides = loadWeekdayGoals();
+    const defaults = loadGoals();
+    const container = document.getElementById("weekdayGoalsList");
+    container.innerHTML = "";
+
+    WEEKDAY_NAMES.forEach((label, idx) => {
+      const existing = overrides[idx];
+      const row = document.createElement("div");
+      row.className = "weekday-goal-row";
+      row.innerHTML = `
+        <label class="weekday-goal-head">
+          <input type="checkbox" class="weekday-goal-toggle" data-day="${idx}" ${existing ? "checked" : ""}>
+          <span>${label}</span>
+        </label>
+        <div class="weekday-goal-fields" style="display:${existing ? "grid" : "none"};">
+          <input type="number" inputmode="decimal" class="mono-input wd-cal" placeholder="Calories" value="${existing ? existing.calories : defaults.calories}">
+          <input type="number" inputmode="decimal" class="mono-input wd-protein" placeholder="Protein g" value="${existing ? existing.protein : defaults.protein}">
+          <input type="number" inputmode="decimal" class="mono-input wd-carbs" placeholder="Carbs g" value="${existing ? existing.carbs : defaults.carbs}">
+          <input type="number" inputmode="decimal" class="mono-input wd-fat" placeholder="Fat g" value="${existing ? existing.fat : defaults.fat}">
+        </div>
+      `;
+      container.appendChild(row);
+    });
+
+    container.querySelectorAll(".weekday-goal-toggle").forEach(cb => {
+      cb.addEventListener("change", () => {
+        cb.closest(".weekday-goal-row").querySelector(".weekday-goal-fields").style.display = cb.checked ? "grid" : "none";
+      });
+    });
+  }
+
+  function saveWeekdayGoalsFromForm(){
+    const overrides = {};
+    document.querySelectorAll("#weekdayGoalsList .weekday-goal-row").forEach(row => {
+      const cb = row.querySelector(".weekday-goal-toggle");
+      if(!cb.checked) return;
+      overrides[cb.dataset.day] = {
+        calories: num(row.querySelector(".wd-cal").value) || DEFAULT_GOALS.calories,
+        protein: num(row.querySelector(".wd-protein").value) || DEFAULT_GOALS.protein,
+        carbs: num(row.querySelector(".wd-carbs").value) || DEFAULT_GOALS.carbs,
+        fat: num(row.querySelector(".wd-fat").value) || DEFAULT_GOALS.fat
+      };
+    });
+    saveWeekdayGoals(overrides);
+    closeWeekdayGoalsSheet();
+    render();
+  }
+
   function escapeHtml(str){
     const d = document.createElement("div");
     d.textContent = str;
@@ -449,7 +2019,12 @@
       calories: num(document.getElementById("entryCals").value),
       protein: num(document.getElementById("entryProtein").value),
       carbs: num(document.getElementById("entryCarbs").value),
-      fat: num(document.getElementById("entryFat").value)
+      fat: num(document.getElementById("entryFat").value),
+      fiber: num(document.getElementById("entryFiber").value),
+      sugar: num(document.getElementById("entrySugar").value),
+      sodium: num(document.getElementById("entrySodium").value),
+      caffeine: num(document.getElementById("entryCaffeine").value),
+      alcohol: num(document.getElementById("entryAlcohol").value)
     };
   }
 
@@ -467,6 +2042,11 @@
     document.getElementById("entryProtein").value = "";
     document.getElementById("entryCarbs").value = "";
     document.getElementById("entryFat").value = "";
+    document.getElementById("entryFiber").value = "";
+    document.getElementById("entrySugar").value = "";
+    document.getElementById("entrySodium").value = "";
+    document.getElementById("entryCaffeine").value = "";
+    document.getElementById("entryAlcohol").value = "";
     document.getElementById("foodSearchInput").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     updateFavStarUI();
@@ -496,6 +2076,11 @@
     document.getElementById("entryProtein").value = e.protein;
     document.getElementById("entryCarbs").value = e.carbs;
     document.getElementById("entryFat").value = e.fat;
+    document.getElementById("entryFiber").value = e.fiber || "";
+    document.getElementById("entrySugar").value = e.sugar || "";
+    document.getElementById("entrySodium").value = e.sodium || "";
+    document.getElementById("entryCaffeine").value = e.caffeine || "";
+    document.getElementById("entryAlcohol").value = e.alcohol || "";
     document.getElementById("foodSearchInput").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     setEntryBaselineFromForm();
@@ -587,6 +2172,11 @@
     document.getElementById("entryProtein").value = f.protein;
     document.getElementById("entryCarbs").value = f.carbs;
     document.getElementById("entryFat").value = f.fat;
+    document.getElementById("entryFiber").value = f.fiber || "";
+    document.getElementById("entrySugar").value = f.sugar || "";
+    document.getElementById("entrySodium").value = f.sodium || "";
+    document.getElementById("entryCaffeine").value = f.caffeine || "";
+    document.getElementById("entryAlcohol").value = f.alcohol || "";
     setEntryBaselineFromForm();
     isFavStarred = true;
     updateFavStarUI();
@@ -601,7 +2191,12 @@
       calories: payload.calories,
       protein: payload.protein,
       carbs: payload.carbs,
-      fat: payload.fat
+      fat: payload.fat,
+      fiber: payload.fiber,
+      sugar: payload.sugar,
+      sodium: payload.sodium,
+      caffeine: payload.caffeine,
+      alcohol: payload.alcohol
     };
     if(idx >= 0){ favs[idx] = favData; } else { favs.push(favData); }
     saveFavorites(favs);
@@ -668,6 +2263,11 @@
       protein: num(document.getElementById("entryProtein").value),
       carbs: num(document.getElementById("entryCarbs").value),
       fat: num(document.getElementById("entryFat").value),
+      fiber: num(document.getElementById("entryFiber").value),
+      sugar: num(document.getElementById("entrySugar").value),
+      sodium: num(document.getElementById("entrySodium").value),
+      caffeine: num(document.getElementById("entryCaffeine").value),
+      alcohol: num(document.getElementById("entryAlcohol").value),
       date: currentDate,
       photo: entryPhotoDataUrl || null
     };
@@ -708,21 +2308,32 @@
         protein: ln.protein ? ln.protein.value : 0,
         carbs: ln.carbohydrates ? ln.carbohydrates.value : 0,
         fat: ln.fat ? ln.fat.value : 0,
+        fiber: ln.fiber ? ln.fiber.value : 0,
+        sugar: ln.sugars ? ln.sugars.value : 0,
+        sodium: ln.sodium ? ln.sodium.value : 0,
+        caffeine: ln.caffeine ? ln.caffeine.value : 0,
         serving: (food.servingSize && food.servingSizeUnit)
           ? (food.servingSize + food.servingSizeUnit)
           : (food.householdServingFullText || "")
       };
     }
     const nutrients = food.foodNutrients || [];
-    const find = (name) => {
-      const n = nutrients.find(x => x.nutrientName === name);
-      return n ? num(n.value) : 0;
+    const find = (...names) => {
+      for(const name of names){
+        const n = nutrients.find(x => x.nutrientName === name);
+        if(n) return num(n.value);
+      }
+      return 0;
     };
     return {
       calories: find("Energy"),
       protein: find("Protein"),
       carbs: find("Carbohydrate, by difference"),
       fat: find("Total lipid (fat)"),
+      fiber: find("Fiber, total dietary"),
+      sugar: find("Sugars, total including NLEA", "Sugars, total"),
+      sodium: find("Sodium, Na"),
+      caffeine: find("Caffeine"),
       serving: "100 g"
     };
   }
@@ -755,6 +2366,11 @@
     document.getElementById("entryProtein").value = Math.round(macros.protein);
     document.getElementById("entryCarbs").value = Math.round(macros.carbs);
     document.getElementById("entryFat").value = Math.round(macros.fat);
+    document.getElementById("entryFiber").value = Math.round(macros.fiber || 0);
+    document.getElementById("entrySugar").value = Math.round(macros.sugar || 0);
+    document.getElementById("entrySodium").value = Math.round(macros.sodium || 0);
+    document.getElementById("entryCaffeine").value = Math.round(macros.caffeine || 0);
+    document.getElementById("entryAlcohol").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     document.getElementById("foodSearchInput").value = "";
     setEntryBaselineFromForm();
@@ -920,6 +2536,10 @@
         protein: num(n["proteins_100g"]),
         carbs: num(n["carbohydrates_100g"]),
         fat: num(n["fat_100g"]),
+        fiber: num(n["fiber_100g"]),
+        sugar: num(n["sugars_100g"]),
+        sodium: num(n["sodium_100g"]) * 1000,
+        caffeine: num(n["caffeine_100g"]) * 1000,
         serving: p.serving_size || "100 g"
       };
       const name = p.product_name ? (p.brands ? `${p.product_name} (${p.brands})` : p.product_name) : "Scanned item";
@@ -939,7 +2559,20 @@
     garminCalories: GARMIN_KEY,
     garminActivities: GARMIN_ACTIVITIES_KEY,
     weight: WEIGHT_KEY,
-    weightUnit: WEIGHT_UNIT_KEY
+    weightUnit: WEIGHT_UNIT_KEY,
+    weightGoal: WEIGHT_GOAL_KEY,
+    water: WATER_KEY,
+    waterGoal: WATER_GOAL_KEY,
+    templates: TEMPLATES_KEY,
+    weekdayGoals: WEEKDAY_GOALS_KEY,
+    workoutPlan: WORKOUT_PLAN_KEY,
+    workoutSegmentDone: WORKOUT_SEGMENT_DONE_KEY,
+    checkinLog: CHECKIN_LOG_KEY,
+    dayNotes: DAY_NOTES_KEY,
+    todos: TODOS_KEY,
+    calEventDone: CAL_EVENT_DONE_KEY,
+    gymLog: GYM_LOG_KEY,
+    workoutRoutines: WORKOUT_ROUTINES_KEY
   };
 
   function openBackupSheet(){
@@ -1002,6 +2635,206 @@
       statusEl.textContent = "Couldn't read that file.";
     };
     reader.readAsText(file);
+  }
+
+  // ---------- account & cloud sync ----------
+  const accountOverlay = document.getElementById("accountOverlay");
+  let fbApp = null;
+  let fbAuth = null;
+  let fbDb = null;
+  let fbUser = null;
+  let syncDebounceTimer = null;
+
+  function whenFirebaseReady(cb, attemptsLeft){
+    if(typeof attemptsLeft !== "number") attemptsLeft = 25;
+    if(typeof firebase !== "undefined"){
+      cb();
+      return;
+    }
+    if(attemptsLeft <= 0) return;
+    setTimeout(() => whenFirebaseReady(cb, attemptsLeft - 1), 200);
+  }
+
+  function initFirebase(){
+    const config = loadFirebaseConfig();
+    if(!config || typeof firebase === "undefined") return false;
+    if(!fbApp){
+      try{
+        fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(config);
+        fbAuth = firebase.auth();
+        fbDb = firebase.firestore();
+        fbAuth.onAuthStateChanged(handleAuthStateChanged);
+      }catch(e){
+        fbApp = null; fbAuth = null; fbDb = null;
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function handleAuthStateChanged(user){
+    fbUser = user;
+    updateAccountStatusUI();
+    if(user){
+      await pullStateFromCloud();
+      render();
+      renderFavsRow();
+    }
+  }
+
+  function updateAccountStatusUI(){
+    const note = document.getElementById("acctStatusNote");
+    const setupSection = document.getElementById("acctSetupSection");
+    const manageSection = document.getElementById("acctManageSection");
+    if(fbUser){
+      note.textContent = "Signed in as " + fbUser.email;
+      setupSection.style.display = "none";
+      manageSection.style.display = "block";
+    } else {
+      note.textContent = loadFirebaseConfig() ? "Signed out." : "Not set up.";
+      setupSection.style.display = "block";
+      manageSection.style.display = "none";
+    }
+  }
+
+  function updateSyncNote(msg){
+    const el = document.getElementById("acctSyncNote");
+    if(el) el.textContent = msg;
+  }
+
+  function gatherSyncData(){
+    const data = {};
+    Object.keys(BACKUP_KEYS).forEach(name => {
+      const raw = localStorage.getItem(BACKUP_KEYS[name]);
+      if(raw !== null){
+        try{ data[name] = JSON.parse(raw); }catch(e){ data[name] = raw; }
+      }
+    });
+    // Meal photos aren't synced — they're base64 and would blow past Firestore's
+    // 1MB document limit fast. Strip them before pushing; applySyncData() re-attaches
+    // whatever photo already exists locally when pulling back down.
+    if(Array.isArray(data.entries)){
+      data.entries = data.entries.map(e => {
+        if(!e.photo) return e;
+        const stripped = { ...e };
+        delete stripped.photo;
+        return stripped;
+      });
+    }
+    return data;
+  }
+
+  function applySyncData(data){
+    Object.keys(BACKUP_KEYS).forEach(name => {
+      if(!Object.prototype.hasOwnProperty.call(data, name)) return;
+      if(name === "entries" && Array.isArray(data.entries)){
+        const localPhotoById = {};
+        loadEntries().forEach(e => { if(e.photo) localPhotoById[e.id] = e.photo; });
+        const merged = data.entries.map(e =>
+          (!e.photo && localPhotoById[e.id]) ? { ...e, photo: localPhotoById[e.id] } : e
+        );
+        saveEntries(merged);
+      } else {
+        localStorage.setItem(BACKUP_KEYS[name], JSON.stringify(data[name]));
+      }
+    });
+  }
+
+  async function pushStateToCloud(){
+    if(!fbUser || !fbDb) return;
+    updateSyncNote("Syncing…");
+    try{
+      await fbDb.collection("users").doc(fbUser.uid).set({
+        data: gatherSyncData(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      updateSyncNote("Synced just now.");
+    }catch(e){
+      updateSyncNote("Sync failed — will retry on your next change.");
+    }
+  }
+
+  async function pullStateFromCloud(){
+    if(!fbUser || !fbDb) return;
+    try{
+      const doc = await fbDb.collection("users").doc(fbUser.uid).get();
+      if(doc.exists && doc.data().data){
+        applySyncData(doc.data().data);
+        updateSyncNote("Synced from your account.");
+      } else {
+        updateSyncNote("No cloud data yet — syncing this device up.");
+        await pushStateToCloud();
+      }
+    }catch(e){
+      updateSyncNote("Couldn't reach your account. Using what's on this device.");
+    }
+  }
+
+  function scheduleCloudSync(){
+    if(!fbUser) return;
+    clearTimeout(syncDebounceTimer);
+    syncDebounceTimer = setTimeout(pushStateToCloud, 2500);
+  }
+
+  function openAccountSheet(){
+    const config = loadFirebaseConfig();
+    if(config) document.getElementById("acctConfigInput").value = JSON.stringify(config, null, 2);
+    initFirebase();
+    updateAccountStatusUI();
+    accountOverlay.classList.add("open");
+  }
+  function closeAccountSheet(){
+    accountOverlay.classList.remove("open");
+  }
+
+  function normalizeFirebaseConfigInput(raw){
+    // Firebase's console shows this as a bare JS object (const firebaseConfig = {...};),
+    // not valid JSON — pull out the {...} body, quote its bare keys, and drop trailing commas
+    // so pasting the snippet exactly as shown still works.
+    const match = raw.match(/\{[\s\S]*\}/);
+    let cleaned = match ? match[0] : raw;
+    cleaned = cleaned.replace(/([{,]\s*)([A-Za-z_$][A-Za-z0-9_$]*)\s*:/g, '$1"$2":');
+    cleaned = cleaned.replace(/,(\s*[}\]])/g, "$1");
+    return cleaned;
+  }
+
+  function saveConfigFromForm(){
+    const raw = document.getElementById("acctConfigInput").value.trim();
+    if(!raw) return;
+    let config;
+    try{
+      config = JSON.parse(raw);
+    }catch(e){
+      try{
+        config = JSON.parse(normalizeFirebaseConfigInput(raw));
+      }catch(e2){
+        alert("Couldn't read that config. Paste the firebaseConfig object exactly as shown in your Firebase project settings.");
+        return;
+      }
+    }
+    saveFirebaseConfig(config);
+    fbApp = null; fbAuth = null; fbDb = null;
+    const ok = initFirebase();
+    updateAccountStatusUI();
+    alert(ok ? "Firebase config saved." : "Saved, but couldn't connect — double check your config and try again.");
+  }
+
+  function signUpAccount(){
+    if(!initFirebase()){ alert("Save your Firebase config first."); return; }
+    const email = document.getElementById("acctEmailInput").value.trim();
+    const password = document.getElementById("acctPasswordInput").value;
+    if(!email || password.length < 6){ alert("Enter an email and a password of at least 6 characters."); return; }
+    fbAuth.createUserWithEmailAndPassword(email, password).catch(err => alert(err.message));
+  }
+  function logInAccount(){
+    if(!initFirebase()){ alert("Save your Firebase config first."); return; }
+    const email = document.getElementById("acctEmailInput").value.trim();
+    const password = document.getElementById("acctPasswordInput").value;
+    if(!email || !password){ alert("Enter your email and password."); return; }
+    fbAuth.signInWithEmailAndPassword(email, password).catch(err => alert(err.message));
+  }
+  function signOutAccount(){
+    if(fbAuth) fbAuth.signOut();
   }
 
   // ---------- API key sheet ----------
@@ -1196,11 +3029,56 @@
     note.textContent = gcalAccessToken
       ? "Connected — reconnects automatically while you stay signed into Google."
       : "Not connected.";
+    document.getElementById("gcalConnectSection").style.display = gcalAccessToken ? "none" : "block";
+    document.getElementById("gcalManageSection").style.display = gcalAccessToken ? "block" : "none";
+  }
+
+  async function renderCalendarPicker(){
+    if(!gcalAccessToken) return;
+    const list = document.getElementById("gcalCalendarList");
+    list.innerHTML = '<div class="garmin-history-empty">Loading your calendars…</div>';
+    const calendars = await fetchCalendarList();
+    if(calendars.length === 0){
+      list.innerHTML = '<div class="garmin-history-empty">Couldn\'t load your calendars.</div>';
+      return;
+    }
+    const selected = loadGcalCalendarIds();
+    const workoutIds = loadGcalWorkoutCalendarIds();
+    list.innerHTML = "";
+    calendars.forEach(cal => {
+      const row = document.createElement("div");
+      row.className = "gcal-calendar-row";
+      const checked = selected.includes(cal.id) ? "checked" : "";
+      const workoutChecked = workoutIds.includes(cal.id) ? "checked" : "";
+      const color = cal.backgroundColor || "#9AA3B4";
+      row.innerHTML = `
+        <label class="gcal-calendar-main">
+          <input type="checkbox" class="gcal-calendar-toggle" value="${escapeHtml(cal.id)}" ${checked}>
+          <span class="gcal-calendar-dot" style="background:${color};"></span>
+          <span class="gcal-calendar-name">${escapeHtml(cal.summary || cal.id)}</span>
+        </label>
+        <label class="gcal-workout-flag" title="Treat every event on this calendar as a workout">
+          <input type="checkbox" class="gcal-workout-toggle" value="${escapeHtml(cal.id)}" ${workoutChecked}> 🏋️
+        </label>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function saveCalendarSelectionFromForm(){
+    const ids = Array.from(document.querySelectorAll(".gcal-calendar-toggle:checked")).map(cb => cb.value);
+    saveGcalCalendarIds(ids.length > 0 ? ids : ["primary"]);
+    const workoutIds = Array.from(document.querySelectorAll(".gcal-workout-toggle:checked")).map(cb => cb.value);
+    saveGcalWorkoutCalendarIds(workoutIds);
+    refreshTodoCalendarCache();
+    renderWorkoutCard();
+    alert("Calendar selection saved.");
   }
 
   function openCalendarSheet(){
     document.getElementById("gcalClientIdInput").value = loadGcalClientId();
     updateGcalStatus();
+    if(gcalAccessToken) renderCalendarPicker();
     calendarOverlay.classList.add("open");
   }
   function closeCalendarSheet(){
@@ -1235,7 +3113,8 @@
           gcalAccessToken = tokenResponse.access_token;
           saveGcalToken(tokenResponse.access_token, tokenResponse.expires_in);
           updateGcalStatus();
-          renderCalendarCard();
+          renderCalendarPicker();
+          refreshTodoCalendarCache();
         }
       });
     }
@@ -1252,12 +3131,23 @@
     setTimeout(() => whenGoogleReady(cb, attemptsLeft - 1), 200);
   }
 
+  let reconnectingGcal = false;
+  function attemptSilentReconnect(){
+    if(reconnectingGcal || !loadGcalClientId()) return;
+    reconnectingGcal = true;
+    whenGoogleReady(() => {
+      const client = ensureGcalTokenClient(true);
+      if(client) client.requestAccessToken({ prompt: "" });
+      reconnectingGcal = false;
+    });
+  }
+
   function initGoogleCalendarOnLoad(){
     const stored = loadGcalToken();
     if(stored){
       gcalAccessToken = stored.access_token;
       updateGcalStatus();
-      renderCalendarCard();
+      refreshTodoCalendarCache();
       return;
     }
     if(!loadGcalClientId()) return;
@@ -1279,14 +3169,25 @@
     gcalAccessToken = null;
     clearGcalToken();
     updateGcalStatus();
-    renderCalendarCard();
+    refreshTodoCalendarCache();
   }
 
-  async function fetchCalendarEventsForDate(dateStr){
-    if(!gcalAccessToken) return null;
-    const timeMin = new Date(dateStr + "T00:00:00").toISOString();
-    const timeMax = new Date(dateStr + "T23:59:59").toISOString();
-    const url = "https://www.googleapis.com/calendar/v3/calendars/primary/events" +
+  async function fetchCalendarList(){
+    if(!gcalAccessToken) return [];
+    try{
+      const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
+        headers: { Authorization: "Bearer " + gcalAccessToken }
+      });
+      if(!res.ok) return [];
+      const data = await res.json();
+      return data.items || [];
+    }catch(e){
+      return [];
+    }
+  }
+
+  async function fetchEventsFromCalendar(calendarId, timeMin, timeMax){
+    const url = "https://www.googleapis.com/calendar/v3/calendars/" + encodeURIComponent(calendarId) + "/events" +
       "?timeMin=" + encodeURIComponent(timeMin) +
       "&timeMax=" + encodeURIComponent(timeMax) +
       "&singleEvents=true&orderBy=startTime";
@@ -1296,14 +3197,50 @@
         gcalAccessToken = null;
         clearGcalToken();
         updateGcalStatus();
+        attemptSilentReconnect();
         return null;
       }
       if(!res.ok) return null;
       const data = await res.json();
-      return data.items || [];
+      return (data.items || []).map(ev => ({ ...ev, _calendarId: calendarId }));
     }catch(e){
       return null;
     }
+  }
+
+  function eventBelongsToDate(ev, dateStr){
+    if(ev.start && ev.start.dateTime){
+      return dateToStr(new Date(ev.start.dateTime)) === dateStr;
+    }
+    if(ev.start && ev.start.date){
+      // All-day events are timezone-naive on Google's side, so the timeMin/timeMax
+      // window can pull in the adjacent day's all-day event when the local offset
+      // is non-zero. Only keep it if dateStr actually falls within the event's
+      // [start, end) range — end.date is exclusive per the Calendar API, and
+      // multi-day all-day events (e.g. a training block) span more than one day.
+      const start = ev.start.date;
+      const end = (ev.end && ev.end.date) ? ev.end.date : start;
+      return dateStr >= start && dateStr < end;
+    }
+    return false;
+  }
+
+  async function fetchCalendarEventsForDate(dateStr){
+    if(!gcalAccessToken) return null;
+    const timeMin = new Date(dateStr + "T00:00:00").toISOString();
+    const timeMax = new Date(dateStr + "T23:59:59").toISOString();
+    const calendarIds = loadGcalCalendarIds();
+
+    const results = await Promise.all(calendarIds.map(id => fetchEventsFromCalendar(id, timeMin, timeMax)));
+    if(results.every(r => r === null)) return null;
+
+    const merged = results.filter(r => r).flat().filter(ev => eventBelongsToDate(ev, dateStr));
+    merged.sort((a, b) => {
+      const aStart = (a.start && (a.start.dateTime || a.start.date)) || "";
+      const bStart = (b.start && (b.start.dateTime || b.start.date)) || "";
+      return aStart.localeCompare(bStart);
+    });
+    return merged;
   }
 
   function eventTimeLabel(ev){
@@ -1311,79 +3248,71 @@
     return start ? start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }) : "All day";
   }
 
-  function renderCalendarEventList(events){
-    const list = document.getElementById("calendarCardList");
-    list.innerHTML = "";
-    events.forEach(ev => {
-      const row = document.createElement("div");
-      row.className = "garmin-history-row";
-      row.innerHTML = '<span class="garmin-history-date">' + escapeHtml(ev.summary || "(untitled)") +
-        '</span><span class="garmin-history-cal">' + escapeHtml(eventTimeLabel(ev)) + '</span>';
-      list.appendChild(row);
-    });
-  }
+  let todoCalendarCache = { date: null, events: [] };
 
-  async function renderCalendarCard(){
-    const card = document.getElementById("calendarCard");
+  async function refreshTodoCalendarCache(){
     if(!gcalAccessToken){
-      card.style.display = "none";
+      todoCalendarCache = { date: null, events: [] };
+      renderTodoCard();
       return;
     }
     const dateForFetch = currentDate;
     const events = await fetchCalendarEventsForDate(dateForFetch);
     if(dateForFetch !== currentDate) return; // user navigated away before this resolved
-    if(events === null){
-      card.style.display = "none";
+    todoCalendarCache = { date: dateForFetch, events: events || [] };
+    renderTodoCard();
+  }
+
+  // ---------- calendar view sheet ----------
+  const calendarViewOverlay = document.getElementById("calendarViewOverlay");
+
+  function openCalendarViewSheet(){
+    renderCalendarView();
+    calendarViewOverlay.classList.add("open");
+  }
+  function closeCalendarViewSheet(){
+    calendarViewOverlay.classList.remove("open");
+  }
+
+  async function renderCalendarView(){
+    const body = document.getElementById("calendarViewBody");
+    if(!gcalAccessToken){
+      body.innerHTML = '<div class="garmin-history-empty">Connect Google Calendar first (☰ → Connections & Data → Google Calendar) to see your events here.</div>';
       return;
     }
+    body.innerHTML = '<div class="garmin-history-empty">Loading…</div>';
+    const dates = currentWeekDates(currentDate);
+    const weekKey = dates.join(",");
+    const results = await Promise.all(dates.map(d => fetchCalendarEventsForDate(d)));
+    if(currentWeekDates(currentDate).join(",") !== weekKey) return; // navigated away while loading
 
-    document.getElementById("calendarCardLabel").textContent =
-      formatDateLabel(currentDate) + "'s schedule";
+    body.innerHTML = "";
+    dates.forEach((d, idx) => {
+      const events = results[idx] || [];
+      const section = document.createElement("div");
+      section.className = "cal-view-day";
 
-    const nextEl = document.getElementById("calendarNextEvent");
-    const moreBtn = document.getElementById("calendarMoreBtn");
-    const list = document.getElementById("calendarCardList");
-    list.innerHTML = "";
-    list.style.display = "none";
-    moreBtn.style.display = "none";
-    renderCalendarEventList(events);
+      const heading = document.createElement("div");
+      heading.className = "cal-view-day-head" + (d === todayStr() ? " today" : "");
+      heading.textContent = WORKOUT_DAY_ABBRS[idx] + " · " + formatDateLabel(d);
+      section.appendChild(heading);
 
-    if(events.length === 0){
-      nextEl.className = "calendar-next-event empty";
-      nextEl.textContent = "No events.";
-      card.style.display = "block";
-      return;
-    }
-
-    const isToday = currentDate === todayStr();
-    const now = new Date();
-    let nextIdx = 0;
-    if(isToday){
-      nextIdx = events.findIndex(ev => {
-        const start = ev.start && ev.start.dateTime ? new Date(ev.start.dateTime) : null;
-        return start && start >= now;
-      });
-    }
-
-    if(nextIdx === -1){
-      nextEl.className = "calendar-next-event empty";
-      nextEl.textContent = "No more events today.";
-      moreBtn.textContent = "Show " + events.length + " earlier event" + (events.length === 1 ? "" : "s");
-      moreBtn.style.display = "inline";
-    } else {
-      const next = events[nextIdx];
-      nextEl.className = "calendar-next-event";
-      nextEl.innerHTML = '<div class="cal-next-title">' + escapeHtml(next.summary || "(untitled)") + '</div>' +
-        '<div class="cal-next-time">' + escapeHtml(eventTimeLabel(next)) + '</div>';
-
-      const remaining = events.length - nextIdx - 1;
-      if(remaining > 0){
-        moreBtn.textContent = "+" + remaining + " more today";
-        moreBtn.style.display = "inline";
+      if(events.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "garmin-history-empty";
+        empty.textContent = "No events.";
+        section.appendChild(empty);
+      } else {
+        events.forEach(ev => {
+          const row = document.createElement("div");
+          row.className = "garmin-history-row";
+          row.innerHTML = '<span class="garmin-history-date">' + escapeHtml(ev.summary || "(untitled)") +
+            '</span><span class="garmin-history-cal">' + escapeHtml(eventTimeLabel(ev)) + '</span>';
+          section.appendChild(row);
+        });
       }
-    }
-
-    card.style.display = "block";
+      body.appendChild(section);
+    });
   }
 
   // ---------- drawer menu ----------
@@ -1405,12 +3334,20 @@
       b.classList.toggle("active", b.dataset.unit === weightSheetUnit);
     });
     document.getElementById("weightFieldLabel").textContent = "Weight (" + weightSheetUnit + ")";
+    document.getElementById("weightGoalFieldLabel").textContent = "Goal weight (" + weightSheetUnit + ")";
 
     const existingKg = loadWeights()[currentDate];
     document.getElementById("weightInput").value = existingKg != null
       ? round1(weightSheetUnit === "kg" ? existingKg : kgToLb(existingKg))
       : "";
     document.getElementById("weightDateNote").textContent = "Logging for " + formatDateLabel(currentDate) + ".";
+
+    const goalKg = loadWeightGoal();
+    document.getElementById("weightGoalInput").value = goalKg != null
+      ? round1(weightSheetUnit === "kg" ? goalKg : kgToLb(goalKg))
+      : "";
+
+    renderWeightProjection();
     weightOverlay.classList.add("open");
   }
   function closeWeightSheet(){
@@ -1423,12 +3360,19 @@
       const converted = unit === "kg" ? lbToKg(raw) : kgToLb(raw);
       document.getElementById("weightInput").value = round1(converted);
     }
+    const rawGoal = num(document.getElementById("weightGoalInput").value);
+    if(rawGoal > 0){
+      const convertedGoal = unit === "kg" ? lbToKg(rawGoal) : kgToLb(rawGoal);
+      document.getElementById("weightGoalInput").value = round1(convertedGoal);
+    }
     weightSheetUnit = unit;
     saveWeightUnit(unit);
     document.querySelectorAll("#weightUnitsToggle button").forEach(b => {
       b.classList.toggle("active", b.dataset.unit === unit);
     });
     document.getElementById("weightFieldLabel").textContent = "Weight (" + unit + ")";
+    document.getElementById("weightGoalFieldLabel").textContent = "Goal weight (" + unit + ")";
+    renderWeightProjection();
   }
   function saveWeightFromForm(){
     const raw = num(document.getElementById("weightInput").value);
@@ -1442,6 +3386,71 @@
     saveWeights(map);
     closeWeightSheet();
     render();
+  }
+
+  function saveWeightGoalFromInput(){
+    const raw = num(document.getElementById("weightGoalInput").value);
+    const kg = raw > 0 ? (weightSheetUnit === "kg" ? raw : lbToKg(raw)) : 0;
+    saveWeightGoal(kg);
+    renderWeightProjection();
+  }
+
+  function computeWeightTrendRatePerDay(map){
+    const dates = Object.keys(map).sort();
+    if(dates.length < 2) return null;
+    const recentDates = dates.slice(-60);
+    const refTime = new Date(recentDates[0] + "T00:00:00").getTime();
+    const points = recentDates.map(d => ({
+      x: (new Date(d + "T00:00:00").getTime() - refTime) / 86400000,
+      y: map[d]
+    }));
+    const n = points.length;
+    const sumX = points.reduce((s, p) => s + p.x, 0);
+    const sumY = points.reduce((s, p) => s + p.y, 0);
+    const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+    const sumXX = points.reduce((s, p) => s + p.x * p.x, 0);
+    const denom = n * sumXX - sumX * sumX;
+    if(denom === 0) return 0;
+    return (n * sumXY - sumX * sumY) / denom;
+  }
+
+  function renderWeightProjection(){
+    const note = document.getElementById("weightProjectionNote");
+    const map = loadWeights();
+    const goalKg = loadWeightGoal();
+    const unit = weightSheetUnit;
+
+    if(!goalKg){
+      note.textContent = "Set a goal weight to see a projection based on your logged trend.";
+      return;
+    }
+    const dates = Object.keys(map).sort();
+    if(dates.length === 0){
+      note.textContent = "Log a weight to see progress toward your goal.";
+      return;
+    }
+    const latestKg = map[dates[dates.length - 1]];
+    const goalDisplay = round1(unit === "kg" ? goalKg : kgToLb(goalKg));
+    const remainingKg = goalKg - latestKg;
+    if(Math.abs(remainingKg) < 0.05){
+      note.textContent = "You're at your goal weight (" + goalDisplay + " " + unit + ").";
+      return;
+    }
+    const rate = computeWeightTrendRatePerDay(map);
+    if(rate == null || Math.abs(rate) < 0.001){
+      note.textContent = "Log a few more weigh-ins to see a projection toward " + goalDisplay + " " + unit + ".";
+      return;
+    }
+    const movingTowardGoal = (remainingKg > 0 && rate > 0) || (remainingKg < 0 && rate < 0);
+    if(!movingTowardGoal){
+      note.textContent = "Your recent trend is moving away from your " + goalDisplay + " " + unit + " goal.";
+      return;
+    }
+    const daysToGoal = Math.round(remainingKg / rate);
+    const projectedDate = addDays(todayStr(), daysToGoal);
+    const rateWeekDisplay = round1(Math.abs(unit === "kg" ? rate * 7 : kgToLb(rate * 7)));
+    note.textContent = "At your current rate (~" + rateWeekDisplay + " " + unit + "/week), you'll reach " +
+      goalDisplay + " " + unit + " around " + formatDateLabel(projectedDate) + ".";
   }
 
   // ---------- trends ----------
@@ -1489,6 +3498,97 @@
 
     renderTrendChart(dayData, goals);
     renderTrendStats(dayData, goals);
+    renderWorkoutTrend(dates);
+  }
+
+  function getGymExerciseNames(){
+    const log = loadGymLog();
+    const names = new Set();
+    Object.values(log).forEach(list => list.forEach(ex => names.add(ex.name)));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderTrendExerciseOptions(){
+    const select = document.getElementById("trendExerciseSelect");
+    const names = getGymExerciseNames();
+    const prevValue = select.value;
+    select.innerHTML = "";
+    if(names.length === 0){
+      select.innerHTML = '<option value="">No exercises logged yet</option>';
+      select.disabled = true;
+      return false;
+    }
+    select.disabled = false;
+    names.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
+    if(names.includes(prevValue)) select.value = prevValue;
+    return true;
+  }
+
+  function renderWorkoutTrend(dates){
+    const plan = loadWorkoutPlan();
+    const gymLog = loadGymLog();
+
+    const strip = document.getElementById("trendWorkoutStrip");
+    strip.innerHTML = "";
+    let completedCount = 0;
+    dates.forEach(d => {
+      const planEntry = plan[d];
+      const hasGymLog = (gymLog[d] || []).length > 0;
+      const completed = (planEntry && planEntry.done) || hasGymLog;
+      if(completed) completedCount++;
+      const pill = document.createElement("div");
+      pill.className = "trend-workout-pill" + (completed ? " done" : "");
+      pill.textContent = String(new Date(d + "T00:00:00").getDate());
+      pill.title = d + (completed ? " — workout completed" : " — no workout logged");
+      strip.appendChild(pill);
+    });
+    document.getElementById("trendWorkoutCount").textContent =
+      completedCount + " / " + dates.length + " days with a completed workout";
+
+    const hasExercises = renderTrendExerciseOptions();
+    const chart = document.getElementById("trendExerciseChart");
+    chart.innerHTML = "";
+    if(!hasExercises) return;
+
+    const exName = document.getElementById("trendExerciseSelect").value;
+    const unit = loadWeightUnit();
+    const dayMax = dates.map(d => {
+      const list = gymLog[d] || [];
+      const ex = list.find(x => x.name === exName);
+      if(!ex || ex.sets.length === 0) return null;
+      return Math.max(...ex.sets.map(s => s.weight));
+    });
+    const loggedWeights = dayMax.filter(w => w != null);
+    const maxWeight = Math.max(...loggedWeights, 1);
+
+    dates.forEach((d, i) => {
+      const w = dayMax[i];
+      const col = document.createElement("div");
+      col.className = "trend-bar-col";
+
+      const track = document.createElement("div");
+      track.className = "trend-bar-track";
+
+      const fill = document.createElement("div");
+      const pct = w != null ? Math.max((w / maxWeight) * 100, 2) : 3;
+      fill.className = "trend-bar-fill" + (w == null ? " empty" : "");
+      fill.style.height = pct + "%";
+      fill.title = w != null ? (w + unit + " top set") : "Not logged";
+      track.appendChild(fill);
+
+      const label = document.createElement("div");
+      label.className = "trend-bar-label";
+      label.textContent = trendDayLabel(d);
+
+      col.appendChild(track);
+      col.appendChild(label);
+      chart.appendChild(col);
+    });
   }
 
   function renderTrendChart(dayData, goals){
@@ -1541,10 +3641,12 @@
     const avg = (key) => loggedDays.reduce((s, d) => s + d.totals[key], 0) / loggedDays.length;
 
     const stats = [
-      { num: Math.round(avg("calories")) + " kcal", lbl: "Avg calories (goal " + goals.calories + ")" },
-      { num: loggedDays.length + " / " + dayData.length, lbl: "Days logged" },
-      { num: Math.round(avg("protein")) + "g", lbl: "Avg protein (goal " + goals.protein + "g)" },
-      { num: Math.round(avg("carbs")) + "g / " + Math.round(avg("fat")) + "g", lbl: "Avg carbs / fat" }
+      { num: Math.round(avg("calories")) + " kcal", lbl: "Avg calories (goal " + goals.calories + ")", color: "amber" },
+      { num: loggedDays.length + " / " + dayData.length, lbl: "Days logged", color: "good" },
+      { num: Math.round(avg("protein")) + "g", lbl: "Avg protein (goal " + goals.protein + "g)", color: "protein" },
+      { num: Math.round(avg("carbs")) + "g / " + Math.round(avg("fat")) + "g", lbl: "Avg carbs / fat", color: "carbs" },
+      { num: Math.round(avg("fiber")) + "g", lbl: "Avg fiber (aim " + FIBER_GOAL_G + "g)", color: "good" },
+      { num: Math.round(avg("sugar")) + "g / " + Math.round(avg("sodium")) + "mg", lbl: "Avg sugar / sodium", color: "danger" }
     ];
 
     const burnedDays = dayData.filter(d => d.burned != null);
@@ -1552,7 +3654,8 @@
       const avgBurned = burnedDays.reduce((s, d) => s + d.burned, 0) / burnedDays.length;
       stats.push({
         num: Math.round(avgBurned) + " kcal",
-        lbl: "Avg burned (Garmin, " + burnedDays.length + " day" + (burnedDays.length === 1 ? "" : "s") + ")"
+        lbl: "Avg burned (Garmin, " + burnedDays.length + " day" + (burnedDays.length === 1 ? "" : "s") + ")",
+        color: "terracotta"
       });
     }
 
@@ -1563,7 +3666,8 @@
       const latestDisplay = unit === "kg" ? latest.weightKg : kgToLb(latest.weightKg);
       stats.push({
         num: round1(latestDisplay) + " " + unit,
-        lbl: "Latest weight (" + trendDayLabel(latest.dateStr) + ")"
+        lbl: "Latest weight (" + trendDayLabel(latest.dateStr) + ")",
+        color: "carbs"
       });
       if(weightEntries.length > 1){
         const first = weightEntries[0];
@@ -1573,7 +3677,8 @@
         const sign = rounded > 0 ? "+" : "";
         stats.push({
           num: sign + rounded + " " + unit,
-          lbl: "Weight change over range"
+          lbl: "Weight change over range",
+          color: "carbs"
         });
       }
     }
@@ -1581,8 +3686,9 @@
     stats.forEach(s => {
       const box = document.createElement("div");
       box.className = "trend-stat";
-      box.innerHTML = '<div class="num mono">' + escapeHtml(String(s.num)) +
-        '</div><div class="lbl">' + escapeHtml(s.lbl) + '</div>';
+      box.innerHTML = '<div class="trend-stat-head"><span class="trend-stat-dot" style="background:var(--' + s.color + ');"></span>' +
+        '<div class="num mono">' + escapeHtml(String(s.num)) + '</div></div>' +
+        '<div class="lbl">' + escapeHtml(s.lbl) + '</div>';
       container.appendChild(box);
     });
   }
@@ -1844,6 +3950,11 @@
     document.getElementById("entryProtein").value = Math.round(entryBaseline.protein * ratio);
     document.getElementById("entryCarbs").value = Math.round(entryBaseline.carbs * ratio);
     document.getElementById("entryFat").value = Math.round(entryBaseline.fat * ratio);
+    document.getElementById("entryFiber").value = Math.round(entryBaseline.fiber * ratio);
+    document.getElementById("entrySugar").value = Math.round(entryBaseline.sugar * ratio);
+    document.getElementById("entrySodium").value = Math.round(entryBaseline.sodium * ratio);
+    document.getElementById("entryCaffeine").value = Math.round((entryBaseline.caffeine || 0) * ratio);
+    document.getElementById("entryAlcohol").value = Math.round((entryBaseline.alcohol || 0) * ratio * 10) / 10;
   });
 
   document.getElementById("foodSearchBtn").addEventListener("click", performFoodSearch);
@@ -1873,21 +3984,42 @@
   document.getElementById("favoritesCloseBtn").addEventListener("click", closeFavoritesSheet);
   favoritesOverlay.addEventListener("click", (e) => { if(e.target === favoritesOverlay) closeFavoritesSheet(); });
 
+  document.getElementById("viewTemplatesBtn").addEventListener("click", openTemplatesSheet);
+  document.getElementById("templatesCloseBtn").addEventListener("click", closeTemplatesSheet);
+  templatesOverlay.addEventListener("click", (e) => { if(e.target === templatesOverlay) closeTemplatesSheet(); });
+
+  document.getElementById("viewHistoryBtn").addEventListener("click", openHistorySheet);
+  document.getElementById("historyCloseBtn").addEventListener("click", closeHistorySheet);
+  historyOverlay.addEventListener("click", (e) => { if(e.target === historyOverlay) closeHistorySheet(); });
+  document.getElementById("historySearchInput").addEventListener("input", (e) => renderHistoryResults(e.target.value));
+
+  document.getElementById("weekdayGoalsBtn").addEventListener("click", openWeekdayGoalsSheet);
+  document.getElementById("weekdayGoalsCloseBtn").addEventListener("click", closeWeekdayGoalsSheet);
+  document.getElementById("weekdayGoalsSaveBtn").addEventListener("click", saveWeekdayGoalsFromForm);
+  weekdayGoalsOverlay.addEventListener("click", (e) => { if(e.target === weekdayGoalsOverlay) closeWeekdayGoalsSheet(); });
+
+  document.querySelectorAll(".water-btn").forEach(btn => {
+    btn.addEventListener("click", () => addWater(num(btn.dataset.ml)));
+  });
+  document.getElementById("waterResetBtn").addEventListener("click", resetWaterToday);
+  document.getElementById("waterGoalBtn").addEventListener("click", promptWaterGoal);
+
   document.getElementById("connectCalendarBtn").addEventListener("click", openCalendarSheet);
   document.getElementById("calendarCloseBtn").addEventListener("click", closeCalendarSheet);
   document.getElementById("gcalSaveClientIdBtn").addEventListener("click", saveGcalClientIdFromForm);
   document.getElementById("gcalSignInBtn").addEventListener("click", signInGoogleCalendar);
   document.getElementById("gcalSignOutBtn").addEventListener("click", signOutGoogleCalendar);
+  document.getElementById("gcalSaveCalendarsBtn").addEventListener("click", saveCalendarSelectionFromForm);
   calendarOverlay.addEventListener("click", (e) => { if(e.target === calendarOverlay) closeCalendarSheet(); });
-  document.getElementById("calendarMoreBtn").addEventListener("click", () => {
-    const list = document.getElementById("calendarCardList");
-    list.style.display = list.style.display === "flex" ? "none" : "flex";
-  });
+
+  document.getElementById("viewCalendarBtn").addEventListener("click", openCalendarViewSheet);
+  document.getElementById("calendarViewCloseBtn").addEventListener("click", closeCalendarViewSheet);
+  calendarViewOverlay.addEventListener("click", (e) => { if(e.target === calendarViewOverlay) closeCalendarViewSheet(); });
 
   document.getElementById("menuBtn").addEventListener("click", openDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", (e) => { if(e.target === drawerOverlay) closeDrawer(); });
-  ["editGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "logWeightBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn"].forEach(id => {
+  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "viewCalendarBtn", "connectCalendarBtn", "backupDataBtn", "accountSyncBtn", "remindersBtn"].forEach(id => {
     document.getElementById(id).addEventListener("click", closeDrawer);
   });
 
@@ -1904,13 +4036,87 @@
     e.target.value = "";
   });
 
+  document.getElementById("accountSyncBtn").addEventListener("click", openAccountSheet);
+  document.getElementById("accountCloseBtn").addEventListener("click", closeAccountSheet);
+  accountOverlay.addEventListener("click", (e) => { if(e.target === accountOverlay) closeAccountSheet(); });
+  document.getElementById("acctSaveConfigBtn").addEventListener("click", saveConfigFromForm);
+  document.getElementById("acctSignUpBtn").addEventListener("click", signUpAccount);
+  document.getElementById("acctLogInBtn").addEventListener("click", logInAccount);
+  document.getElementById("acctSignOutBtn").addEventListener("click", signOutAccount);
+  document.getElementById("acctSyncNowBtn").addEventListener("click", pushStateToCloud);
+
+  document.getElementById("remindersBtn").addEventListener("click", openRemindersSheet);
+  document.getElementById("remindersCloseBtn").addEventListener("click", closeRemindersSheet);
+  document.getElementById("remindersSaveBtn").addEventListener("click", saveRemindersFromForm);
+  document.getElementById("remEnableNotifsBtn").addEventListener("click", requestNotificationPermission);
+  remindersOverlay.addEventListener("click", (e) => { if(e.target === remindersOverlay) closeRemindersSheet(); });
+
   document.getElementById("logWeightBtn").addEventListener("click", openWeightSheet);
   document.getElementById("weightCancelBtn").addEventListener("click", closeWeightSheet);
   document.getElementById("weightSaveBtn").addEventListener("click", saveWeightFromForm);
+  document.getElementById("weightGoalInput").addEventListener("input", saveWeightGoalFromInput);
   weightOverlay.addEventListener("click", (e) => { if(e.target === weightOverlay) closeWeightSheet(); });
   document.querySelectorAll("#weightUnitsToggle button").forEach(btn => {
     btn.addEventListener("click", () => setWeightSheetUnit(btn.dataset.unit));
   });
+
+  document.getElementById("planWorkoutsBtn").addEventListener("click", openWorkoutPlanSheet);
+  document.getElementById("workoutCardEditBtn").addEventListener("click", openWorkoutPlanSheet);
+  document.getElementById("dayNotesInput").addEventListener("input", saveDayNote);
+
+  document.getElementById("todoAddBtn").addEventListener("click", () => {
+    const input = document.getElementById("todoNewInput");
+    addTodo(input.value);
+    input.value = "";
+  });
+  document.getElementById("todoNewInput").addEventListener("keydown", (e) => {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    addTodo(e.target.value);
+    e.target.value = "";
+  });
+
+  document.getElementById("gymLogOpenBtn").addEventListener("click", openGymLogSheet);
+  document.getElementById("gymLogCloseBtn").addEventListener("click", closeGymLogSheet);
+  gymLogOverlay.addEventListener("click", (e) => { if(e.target === gymLogOverlay) closeGymLogSheet(); });
+  document.getElementById("gymSaveRoutineBtn").addEventListener("click", saveTodayAsRoutine);
+
+  document.getElementById("gymLogAddExerciseBtn").addEventListener("click", () => {
+    const input = document.getElementById("gymLogNewExercise");
+    addGymExercise(input.value);
+    input.value = "";
+  });
+  document.getElementById("gymLogNewExercise").addEventListener("keydown", (e) => {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    addGymExercise(e.target.value);
+    e.target.value = "";
+  });
+
+  document.getElementById("gymLogExerciseList").addEventListener("click", (e) => {
+    const removeExBtn = e.target.closest(".gym-remove-exercise");
+    if(removeExBtn){ removeGymExercise(removeExBtn.dataset.exId); return; }
+    const removeSetBtn = e.target.closest(".gym-remove-set");
+    if(removeSetBtn){ removeGymSet(removeSetBtn.dataset.exId, parseInt(removeSetBtn.dataset.setIdx, 10)); return; }
+    const addSetBtn = e.target.closest(".gym-add-set");
+    if(addSetBtn){
+      const block = addSetBtn.closest(".gym-exercise-block");
+      const reps = num(block.querySelector(".gym-set-reps").value);
+      const weight = num(block.querySelector(".gym-set-weight").value);
+      if(reps > 0){ addGymSet(addSetBtn.dataset.exId, reps, weight); }
+    }
+  });
+  document.getElementById("workoutDoneBtn").addEventListener("click", toggleWorkoutDone);
+  document.getElementById("workoutPlanCloseBtn").addEventListener("click", closeWorkoutPlanSheet);
+  document.getElementById("workoutPlanSaveBtn").addEventListener("click", saveWorkoutPlanFromForm);
+  workoutPlanOverlay.addEventListener("click", (e) => { if(e.target === workoutPlanOverlay) closeWorkoutPlanSheet(); });
+
+  document.getElementById("workoutRecOpenBtn").addEventListener("click", openWorkoutRecSheet);
+  document.getElementById("workoutRecCloseBtn").addEventListener("click", closeWorkoutRecSheet);
+  document.getElementById("recGenerateBtn").addEventListener("click", generateWorkoutRecommendation);
+  document.getElementById("recBackBtn").addEventListener("click", backToWorkoutRecForm);
+  document.getElementById("recApplyBtn").addEventListener("click", applyWorkoutRecommendation);
+  workoutRecOverlay.addEventListener("click", (e) => { if(e.target === workoutRecOverlay) closeWorkoutRecSheet(); });
 
   document.getElementById("themeToggleBtn").addEventListener("click", toggleTheme);
   document.getElementById("trendsBtn").addEventListener("click", openTrends);
@@ -1922,6 +4128,9 @@
       document.querySelectorAll("#trendsRangeToggle button").forEach(b => b.classList.toggle("active", b === btn));
       renderTrends();
     });
+  });
+  document.getElementById("trendExerciseSelect").addEventListener("change", () => {
+    renderWorkoutTrend(getDateRange(trendsRangeDays));
   });
 
   document.getElementById("editGoalsBtn").addEventListener("click", openGoals);
@@ -1955,7 +4164,10 @@
   // ---------- init ----------
   applyTheme(loadTheme());
   render();
+  renderCheckinChat();
   initGoogleCalendarOnLoad();
+  whenFirebaseReady(() => initFirebase());
+  setInterval(checkReminders, 60000);
 
   if("serviceWorker" in navigator && location.protocol !== "file:"){
     window.addEventListener("load", () => {
