@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1A1512">
+<meta name="theme-color" content="#0B0E14">
 <title>Macro Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -107,8 +107,14 @@
       <div class="dash-tile-label">Calories</div>
       <div class="ring-wrap">
         <svg viewBox="0 0 132 132">
-          <circle cx="66" cy="66" r="58" fill="none" stroke="#362D26" stroke-width="10"/>
-          <circle id="calRing" cx="66" cy="66" r="58" fill="none" stroke="#B84C6B" stroke-width="10" stroke-linecap="round" stroke-dasharray="364" stroke-dashoffset="364"/>
+          <defs>
+            <linearGradient id="calRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" class="cal-ring-grad-start"/>
+              <stop offset="100%" class="cal-ring-grad-end"/>
+            </linearGradient>
+          </defs>
+          <circle class="cal-ring-track" cx="66" cy="66" r="58" fill="none" stroke-width="10"/>
+          <circle id="calRing" cx="66" cy="66" r="58" fill="none" stroke="url(#calRingGradient)" stroke-width="10" stroke-linecap="round" stroke-dasharray="364" stroke-dashoffset="364"/>
         </svg>
         <div class="ring-center">
           <div class="cal-num mono" id="calNum">0</div>

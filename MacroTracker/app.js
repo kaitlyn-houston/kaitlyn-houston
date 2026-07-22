@@ -2726,7 +2726,7 @@
       row.className = "gcal-calendar-row";
       const checked = selected.includes(cal.id) ? "checked" : "";
       const workoutChecked = workoutIds.includes(cal.id) ? "checked" : "";
-      const color = cal.backgroundColor || "#9C8F82";
+      const color = cal.backgroundColor || "#9AA3B4";
       row.innerHTML = `
         <label class="gcal-calendar-main">
           <input type="checkbox" class="gcal-calendar-toggle" value="${escapeHtml(cal.id)}" ${checked}>
