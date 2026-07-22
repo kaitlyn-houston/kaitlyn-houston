@@ -73,6 +73,9 @@
       <button type="button" class="drawer-item" id="accountSyncBtn">
         <span class="drawer-item-icon">🔐</span> Account &amp; sync
       </button>
+      <button type="button" class="drawer-item" id="remindersBtn">
+        <span class="drawer-item-icon">🔔</span> Reminders
+      </button>
     </div>
   </div>
 </div>
@@ -97,6 +100,7 @@
 
 <main>
   <div class="insight-banner" id="insightBanner" style="display:none;"></div>
+  <div class="reminder-banner" id="reminderBanner" style="display:none;"></div>
 
   <div class="dash-grid">
     <div class="dash-tile dash-tile-big">
@@ -141,6 +145,24 @@
       <div class="dash-tile-label">Fat</div>
       <div class="dash-tile-num-sm mono" id="fatVal">0 / 0g</div>
       <div class="macro-bar-track"><div class="macro-bar-fill" id="fatBar" style="width:0%;background:var(--fat);"></div></div>
+    </div>
+  </div>
+
+  <div class="activity-card" id="microCard">
+    <div class="activity-card-label">Micronutrients</div>
+    <div class="micro-row">
+      <div class="micro-stat">
+        <div class="micro-label">Fiber</div>
+        <div class="micro-value mono" id="fiberVal">0g</div>
+      </div>
+      <div class="micro-stat">
+        <div class="micro-label">Sugar</div>
+        <div class="micro-value mono" id="sugarVal">0g</div>
+      </div>
+      <div class="micro-stat">
+        <div class="micro-label">Sodium</div>
+        <div class="micro-value mono" id="sodiumVal">0mg</div>
+      </div>
     </div>
   </div>
 
@@ -256,6 +278,20 @@
         <label for="entryFat">Fat (g)</label>
         <input type="number" inputmode="decimal" class="mono-input" id="entryFat" placeholder="0">
       </div>
+    </div>
+    <div class="grid-2">
+      <div class="field">
+        <label for="entryFiber">Fiber (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="entryFiber" placeholder="0">
+      </div>
+      <div class="field">
+        <label for="entrySugar">Sugar (g)</label>
+        <input type="number" inputmode="decimal" class="mono-input" id="entrySugar" placeholder="0">
+      </div>
+    </div>
+    <div class="field">
+      <label for="entrySodium">Sodium (mg)</label>
+      <input type="number" inputmode="decimal" class="mono-input" id="entrySodium" placeholder="0">
     </div>
     <div class="fav-toggle-row">
       <button class="fav-star-btn" id="favStarBtn" title="Save as favorite" type="button">☆</button>
@@ -721,6 +757,45 @@
     <hr class="favs-divider">
     <div class="sheet-actions">
       <button class="btn btn-secondary" id="accountCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reminders Sheet -->
+<div class="sheet-overlay" id="remindersOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Reminders</h3>
+    <div class="quiz-note">
+      These check while the app is open and show a banner at the top. If you allow notifications, they'll also
+      try to alert you directly — but iOS limits background notifications for web apps, so they work best while
+      you have the app open or have opened it recently.
+    </div>
+
+    <div class="field">
+      <label class="reminder-toggle">
+        <input type="checkbox" id="remWaterEnabled"> Remind me if I'm behind on water by
+      </label>
+      <input type="time" class="mono-input" id="remWaterTime" value="18:00">
+    </div>
+    <div class="field">
+      <label class="reminder-toggle">
+        <input type="checkbox" id="remMealEnabled"> Remind me if I haven't logged food by
+      </label>
+      <input type="time" class="mono-input" id="remMealTime" value="20:00">
+    </div>
+    <div class="field">
+      <label class="reminder-toggle">
+        <input type="checkbox" id="remWorkoutEnabled"> Remind me about today's planned workout
+      </label>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="remEnableNotifsBtn">Enable notifications</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-secondary" id="remindersCloseBtn">Close</button>
+      <button class="btn btn-primary" id="remindersSaveBtn">Save</button>
     </div>
   </div>
 </div>

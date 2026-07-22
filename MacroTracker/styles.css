@@ -137,6 +137,20 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
   margin:14px 0 0;
 }
 .insight-banner .insight-label{color:var(--amber);font-weight:600;}
+
+.reminder-banner{
+  background:linear-gradient(90deg, rgba(201,154,82,0.18), rgba(201,154,82,0.03));
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:11px 14px;
+  font-size:13px;
+  line-height:1.45;
+  color:var(--text);
+  margin:14px 0 0;
+}
+
+.field .reminder-toggle{display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--text);letter-spacing:normal;margin-bottom:8px;cursor:pointer;}
+.reminder-toggle input{width:16px;height:16px;accent-color:var(--terracotta);flex-shrink:0;}
 .insight-streak{font-size:12px;font-weight:600;color:var(--terracotta);margin-bottom:4px;}
 
 .photo-field{margin:-4px 0 14px;display:flex;}
@@ -155,6 +169,13 @@ main{max-width:520px;margin:0 auto;padding:0 20px;}
   margin:0 0 14px;
 }
 .activity-card-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;}
+
+.micro-row{display:flex;justify-content:space-between;}
+.micro-stat{flex:1;text-align:center;}
+.micro-label{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);margin-bottom:4px;}
+.micro-value{font-size:15px;font-weight:600;color:var(--text);}
+.micro-value.good{color:var(--good);}
+.micro-value.warn{color:var(--danger);}
 
 .calendar-next-event{display:flex;flex-direction:column;gap:3px;}
 .calendar-next-event .cal-next-title{font-size:15px;font-weight:600;color:var(--text);}

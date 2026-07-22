@@ -73,6 +73,16 @@
   ];
   let lastWorkoutRecommendation = null;
   const DEFAULT_GOALS = { calories: 2000, protein: 150, carbs: 200, fat: 65 };
+  const FIBER_GOAL_G = 25;
+  const SUGAR_LIMIT_G = 50;
+  const SODIUM_LIMIT_MG = 2300;
+  const REMINDERS_KEY = "macroTracker.reminders.v1";
+  const NOTIFIED_LOG_KEY = "macroTracker.notifiedLog.v1";
+  const DEFAULT_REMINDERS = {
+    waterEnabled: false, waterTime: "18:00",
+    mealEnabled: false, mealTime: "20:00",
+    workoutEnabled: false
+  };
 
   const MEALS = [
     { id: "breakfast", label: "Breakfast" },
@@ -260,6 +270,128 @@
   function saveWorkoutPlan(map){
     localStorage.setItem(WORKOUT_PLAN_KEY, JSON.stringify(map));
   }
+  function loadReminders(){
+    try{
+      const raw = localStorage.getItem(REMINDERS_KEY);
+      return raw ? { ...DEFAULT_REMINDERS, ...JSON.parse(raw) } : { ...DEFAULT_REMINDERS };
+    }catch(e){ return { ...DEFAULT_REMINDERS }; }
+  }
+  function saveReminders(r){
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify(r));
+  }
+  function loadNotifiedLog(){
+    try{
+      const raw = localStorage.getItem(NOTIFIED_LOG_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(e){ return {}; }
+  }
+  function saveNotifiedLog(log){
+    const today = todayStr();
+    const pruned = {};
+    Object.keys(log).forEach(k => { if(k.endsWith(":" + today)) pruned[k] = log[k]; });
+    localStorage.setItem(NOTIFIED_LOG_KEY, JSON.stringify(pruned));
+  }
+  function maybeNotify(key, dateStr, title, body){
+    if(!("Notification" in window) || Notification.permission !== "granted") return;
+    const log = loadNotifiedLog();
+    const logKey = key + ":" + dateStr;
+    if(log[logKey]) return;
+    try{ new Notification(title, { body, icon: "icons/icon-192.png" }); }catch(e){ return; }
+    log[logKey] = true;
+    saveNotifiedLog(log);
+  }
+  function checkReminders(){
+    const r = loadReminders();
+    const today = todayStr();
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const banner = document.getElementById("reminderBanner");
+    let message = null;
+
+    if(r.waterEnabled){
+      const [h, m] = r.waterTime.split(":").map(Number);
+      if(currentMinutes >= h * 60 + m){
+        const ml = loadWater()[today] || 0;
+        const goal = loadWaterGoal();
+        if(ml < goal * 0.5){
+          message = "💧 You're behind on water today — " + ml + " / " + goal + " ml so far.";
+          maybeNotify("water", today, "Water reminder", message);
+        }
+      }
+    }
+    if(!message && r.mealEnabled){
+      const [h, m] = r.mealTime.split(":").map(Number);
+      if(currentMinutes >= h * 60 + m){
+        if(entriesForDate(today).length === 0){
+          message = "🍽️ Nothing logged yet today.";
+          maybeNotify("meal", today, "Log your food", message);
+        }
+      }
+    }
+    if(!message && r.workoutEnabled){
+      const entry = loadWorkoutPlan()[today];
+      if(entry && entry.label && !entry.done && !NON_WORKOUT_LABELS.includes(entry.label.trim().toLowerCase())){
+        message = "🏋️ Today's planned workout (" + entry.label + ") isn't marked done yet.";
+        maybeNotify("workout", today, "Workout reminder", message);
+      }
+    }
+
+    if(!banner) return;
+    if(message){
+      banner.textContent = message;
+      banner.style.display = "block";
+    } else {
+      banner.style.display = "none";
+    }
+  }
+
+  // ---------- reminders sheet ----------
+  const remindersOverlay = document.getElementById("remindersOverlay");
+
+  function openRemindersSheet(){
+    const r = loadReminders();
+    document.getElementById("remWaterEnabled").checked = r.waterEnabled;
+    document.getElementById("remWaterTime").value = r.waterTime;
+    document.getElementById("remMealEnabled").checked = r.mealEnabled;
+    document.getElementById("remMealTime").value = r.mealTime;
+    document.getElementById("remWorkoutEnabled").checked = r.workoutEnabled;
+    updateNotifPermNote();
+    remindersOverlay.classList.add("open");
+  }
+  function closeRemindersSheet(){
+    remindersOverlay.classList.remove("open");
+  }
+  function updateNotifPermNote(){
+    const btn = document.getElementById("remEnableNotifsBtn");
+    if(!("Notification" in window)){
+      btn.textContent = "Notifications not supported here";
+      btn.disabled = true;
+      return;
+    }
+    if(Notification.permission === "granted"){
+      btn.textContent = "Notifications enabled ✓";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "Enable notifications";
+      btn.disabled = false;
+    }
+  }
+  function requestNotificationPermission(){
+    if(!("Notification" in window)) return;
+    Notification.requestPermission().then(updateNotifPermNote);
+  }
+  function saveRemindersFromForm(){
+    saveReminders({
+      waterEnabled: document.getElementById("remWaterEnabled").checked,
+      waterTime: document.getElementById("remWaterTime").value || "18:00",
+      mealEnabled: document.getElementById("remMealEnabled").checked,
+      mealTime: document.getElementById("remMealTime").value || "20:00",
+      workoutEnabled: document.getElementById("remWorkoutEnabled").checked
+    });
+    closeRemindersSheet();
+    checkReminders();
+  }
+
   function currentWeekDates(refDateStr){
     const ref = refDateStr || todayStr();
     const dow = new Date(ref + "T00:00:00").getDay();
@@ -338,8 +470,11 @@
       acc.protein += num(e.protein);
       acc.carbs += num(e.carbs);
       acc.fat += num(e.fat);
+      acc.fiber += num(e.fiber);
+      acc.sugar += num(e.sugar);
+      acc.sodium += num(e.sodium);
       return acc;
-    }, { calories:0, protein:0, carbs:0, fat:0 });
+    }, { calories:0, protein:0, carbs:0, fat:0, fiber:0, sugar:0, sodium:0 });
   }
 
   function render(){
@@ -356,8 +491,22 @@
     renderWorkoutCard();
     renderActivityCard();
     renderCalendarCard();
+    renderMicroCard(totals);
     renderInsight(totals, goals);
     scheduleCloudSync();
+    checkReminders();
+  }
+
+  function renderMicroCard(totals){
+    const fiberEl = document.getElementById("fiberVal");
+    const sugarEl = document.getElementById("sugarVal");
+    const sodiumEl = document.getElementById("sodiumVal");
+    fiberEl.textContent = Math.round(totals.fiber) + "g";
+    fiberEl.className = "micro-value mono" + (totals.fiber >= FIBER_GOAL_G ? " good" : "");
+    sugarEl.textContent = Math.round(totals.sugar) + "g";
+    sugarEl.className = "micro-value mono" + (totals.sugar > SUGAR_LIMIT_G ? " warn" : "");
+    sodiumEl.textContent = Math.round(totals.sodium) + "mg";
+    sodiumEl.className = "micro-value mono" + (totals.sodium > SODIUM_LIMIT_MG ? " warn" : "");
   }
 
   function renderWaterCard(){
@@ -1120,7 +1269,10 @@
       calories: num(document.getElementById("entryCals").value),
       protein: num(document.getElementById("entryProtein").value),
       carbs: num(document.getElementById("entryCarbs").value),
-      fat: num(document.getElementById("entryFat").value)
+      fat: num(document.getElementById("entryFat").value),
+      fiber: num(document.getElementById("entryFiber").value),
+      sugar: num(document.getElementById("entrySugar").value),
+      sodium: num(document.getElementById("entrySodium").value)
     };
   }
 
@@ -1138,6 +1290,9 @@
     document.getElementById("entryProtein").value = "";
     document.getElementById("entryCarbs").value = "";
     document.getElementById("entryFat").value = "";
+    document.getElementById("entryFiber").value = "";
+    document.getElementById("entrySugar").value = "";
+    document.getElementById("entrySodium").value = "";
     document.getElementById("foodSearchInput").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     updateFavStarUI();
@@ -1167,6 +1322,9 @@
     document.getElementById("entryProtein").value = e.protein;
     document.getElementById("entryCarbs").value = e.carbs;
     document.getElementById("entryFat").value = e.fat;
+    document.getElementById("entryFiber").value = e.fiber || "";
+    document.getElementById("entrySugar").value = e.sugar || "";
+    document.getElementById("entrySodium").value = e.sodium || "";
     document.getElementById("foodSearchInput").value = "";
     document.getElementById("foodSearchResults").innerHTML = "";
     setEntryBaselineFromForm();
@@ -1258,6 +1416,9 @@
     document.getElementById("entryProtein").value = f.protein;
     document.getElementById("entryCarbs").value = f.carbs;
     document.getElementById("entryFat").value = f.fat;
+    document.getElementById("entryFiber").value = f.fiber || "";
+    document.getElementById("entrySugar").value = f.sugar || "";
+    document.getElementById("entrySodium").value = f.sodium || "";
     setEntryBaselineFromForm();
     isFavStarred = true;
     updateFavStarUI();
@@ -1272,7 +1433,10 @@
       calories: payload.calories,
       protein: payload.protein,
       carbs: payload.carbs,
-      fat: payload.fat
+      fat: payload.fat,
+      fiber: payload.fiber,
+      sugar: payload.sugar,
+      sodium: payload.sodium
     };
     if(idx >= 0){ favs[idx] = favData; } else { favs.push(favData); }
     saveFavorites(favs);
@@ -1339,6 +1503,9 @@
       protein: num(document.getElementById("entryProtein").value),
       carbs: num(document.getElementById("entryCarbs").value),
       fat: num(document.getElementById("entryFat").value),
+      fiber: num(document.getElementById("entryFiber").value),
+      sugar: num(document.getElementById("entrySugar").value),
+      sodium: num(document.getElementById("entrySodium").value),
       date: currentDate,
       photo: entryPhotoDataUrl || null
     };
@@ -1379,21 +1546,30 @@
         protein: ln.protein ? ln.protein.value : 0,
         carbs: ln.carbohydrates ? ln.carbohydrates.value : 0,
         fat: ln.fat ? ln.fat.value : 0,
+        fiber: ln.fiber ? ln.fiber.value : 0,
+        sugar: ln.sugars ? ln.sugars.value : 0,
+        sodium: ln.sodium ? ln.sodium.value : 0,
         serving: (food.servingSize && food.servingSizeUnit)
           ? (food.servingSize + food.servingSizeUnit)
           : (food.householdServingFullText || "")
       };
     }
     const nutrients = food.foodNutrients || [];
-    const find = (name) => {
-      const n = nutrients.find(x => x.nutrientName === name);
-      return n ? num(n.value) : 0;
+    const find = (...names) => {
+      for(const name of names){
+        const n = nutrients.find(x => x.nutrientName === name);
+        if(n) return num(n.value);
+      }
+      return 0;
     };
     return {
       calories: find("Energy"),
       protein: find("Protein"),
       carbs: find("Carbohydrate, by difference"),
       fat: find("Total lipid (fat)"),
+      fiber: find("Fiber, total dietary"),
+      sugar: find("Sugars, total including NLEA", "Sugars, total"),
+      sodium: find("Sodium, Na"),
       serving: "100 g"
     };
   }
@@ -1426,6 +1602,9 @@
     document.getElementById("entryProtein").value = Math.round(macros.protein);
     document.getElementById("entryCarbs").value = Math.round(macros.carbs);
     document.getElementById("entryFat").value = Math.round(macros.fat);
+    document.getElementById("entryFiber").value = Math.round(macros.fiber || 0);
+    document.getElementById("entrySugar").value = Math.round(macros.sugar || 0);
+    document.getElementById("entrySodium").value = Math.round(macros.sodium || 0);
     document.getElementById("foodSearchResults").innerHTML = "";
     document.getElementById("foodSearchInput").value = "";
     setEntryBaselineFromForm();
@@ -1591,6 +1770,9 @@
         protein: num(n["proteins_100g"]),
         carbs: num(n["carbohydrates_100g"]),
         fat: num(n["fat_100g"]),
+        fiber: num(n["fiber_100g"]),
+        sugar: num(n["sugars_100g"]),
+        sodium: num(n["sodium_100g"]) * 1000,
         serving: p.serving_size || "100 g"
       };
       const name = p.product_name ? (p.brands ? `${p.product_name} (${p.brands})` : p.product_name) : "Scanned item";
@@ -2524,7 +2706,9 @@
       { num: Math.round(avg("calories")) + " kcal", lbl: "Avg calories (goal " + goals.calories + ")" },
       { num: loggedDays.length + " / " + dayData.length, lbl: "Days logged" },
       { num: Math.round(avg("protein")) + "g", lbl: "Avg protein (goal " + goals.protein + "g)" },
-      { num: Math.round(avg("carbs")) + "g / " + Math.round(avg("fat")) + "g", lbl: "Avg carbs / fat" }
+      { num: Math.round(avg("carbs")) + "g / " + Math.round(avg("fat")) + "g", lbl: "Avg carbs / fat" },
+      { num: Math.round(avg("fiber")) + "g", lbl: "Avg fiber (aim " + FIBER_GOAL_G + "g)" },
+      { num: Math.round(avg("sugar")) + "g / " + Math.round(avg("sodium")) + "mg", lbl: "Avg sugar / sodium" }
     ];
 
     const burnedDays = dayData.filter(d => d.burned != null);
@@ -2824,6 +3008,9 @@
     document.getElementById("entryProtein").value = Math.round(entryBaseline.protein * ratio);
     document.getElementById("entryCarbs").value = Math.round(entryBaseline.carbs * ratio);
     document.getElementById("entryFat").value = Math.round(entryBaseline.fat * ratio);
+    document.getElementById("entryFiber").value = Math.round(entryBaseline.fiber * ratio);
+    document.getElementById("entrySugar").value = Math.round(entryBaseline.sugar * ratio);
+    document.getElementById("entrySodium").value = Math.round(entryBaseline.sodium * ratio);
   });
 
   document.getElementById("foodSearchBtn").addEventListener("click", performFoodSearch);
@@ -2888,7 +3075,7 @@
   document.getElementById("menuBtn").addEventListener("click", openDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", closeDrawer);
   drawerOverlay.addEventListener("click", (e) => { if(e.target === drawerOverlay) closeDrawer(); });
-  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn", "accountSyncBtn"].forEach(id => {
+  ["editGoalsBtn", "weekdayGoalsBtn", "calcMacrosBtn", "viewFavoritesBtn", "viewTemplatesBtn", "viewHistoryBtn", "logWeightBtn", "planWorkoutsBtn", "importGarminBtn", "viewGarminHistoryBtn", "connectCalendarBtn", "backupDataBtn", "accountSyncBtn", "remindersBtn"].forEach(id => {
     document.getElementById(id).addEventListener("click", closeDrawer);
   });
 
@@ -2913,6 +3100,12 @@
   document.getElementById("acctLogInBtn").addEventListener("click", logInAccount);
   document.getElementById("acctSignOutBtn").addEventListener("click", signOutAccount);
   document.getElementById("acctSyncNowBtn").addEventListener("click", pushStateToCloud);
+
+  document.getElementById("remindersBtn").addEventListener("click", openRemindersSheet);
+  document.getElementById("remindersCloseBtn").addEventListener("click", closeRemindersSheet);
+  document.getElementById("remindersSaveBtn").addEventListener("click", saveRemindersFromForm);
+  document.getElementById("remEnableNotifsBtn").addEventListener("click", requestNotificationPermission);
+  remindersOverlay.addEventListener("click", (e) => { if(e.target === remindersOverlay) closeRemindersSheet(); });
 
   document.getElementById("logWeightBtn").addEventListener("click", openWeightSheet);
   document.getElementById("weightCancelBtn").addEventListener("click", closeWeightSheet);
@@ -2980,6 +3173,7 @@
   render();
   initGoogleCalendarOnLoad();
   whenFirebaseReady(() => initFirebase());
+  setInterval(checkReminders, 60000);
 
   if("serviceWorker" in navigator && location.protocol !== "file:"){
     window.addEventListener("load", () => {
